@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Run quality checks
+node scripts/pre-commit-quality.js
+
+# Run lint-staged
+npx lint-staged

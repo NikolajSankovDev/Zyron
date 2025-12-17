@@ -1,0 +1,15 @@
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+NIXPACKS_PNPM_VERSION = "9"
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["SKIP_ENV_VALIDATION=true pnpm run build"]
+
+[start]
+cmd = "pnpm start"

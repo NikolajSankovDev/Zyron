@@ -1,0 +1,490 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Circe';
+  src: url('/fonts/Circe-Regular.woff2') format('woff2'),
+       url('/fonts/Circe-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Circe';
+  src: url('/fonts/Circe-Bold.woff2') format('woff2'),
+       url('/fonts/Circe-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Circe';
+  src: url('/fonts/Circe-Light.woff2') format('woff2'),
+       url('/fonts/Circe-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 30 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 30 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 30 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    background-color: black;
+  }
+  /* Force prevent any layout shifts from Radix UI */
+  html, body {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    overflow-x: hidden !important;
+  }
+  /* Re-enable scrolling on body even when modal is open, to prevent jump */
+  body[data-scroll-locked] {
+    overflow: auto !important;
+    padding-right: 0 !important;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Circe', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  }
+  /* Prevent layout shift when dropdown opens */
+  header [role="combobox"] {
+    contain: layout style;
+  }
+}
+
+body[data-radix-scroll-lock] {
+  overflow: initial !important;
+  padding-right: 0 !important;
+}
+
+body:has([data-radix-scroll-area-viewport]) {
+  padding-right: 0 !important;
+}
+
+/* ==========================================================================
+   FLUID TYPOGRAPHY SYSTEM (Refactoring UI Principles)
+   
+   Target Breakpoints:
+   - Mobile: 375px
+   - Tablet: 768px  
+   - Laptop (MacBook 14"): 1440px
+   - Ultra-Wide: 1920px+
+   
+   Type Scale Ratio: ~1.25 (Major Third)
+   Base at 1440px: 16px
+   ========================================================================== */
+
+@layer utilities {
+  /* 
+   * HERO TITLE (H1)
+   * Mobile: 28px | Laptop 1440px: 36px | Ultra-Wide: 48px
+   * Used for: Main page hero headings only
+   */
+  .text-hero {
+    font-size: clamp(1.75rem, 1.5vw + 1rem, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  
+  /* 
+   * SECTION TITLE (H2)
+   * Mobile: 22px | Laptop 1440px: 28px | Ultra-Wide: 36px
+   * Used for: Section headings (Services, Barbers, Contact)
+   */
+  .text-section-title {
+    font-size: clamp(1.375rem, 1vw + 0.875rem, 2.25rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  
+  /* 
+   * CARD/FEATURE TITLE (H3)
+   * Mobile: 16px | Laptop 1440px: 18px | Ultra-Wide: 22px
+   * Used for: Card headings, feature titles
+   */
+  .text-card-title {
+    font-size: clamp(1rem, 0.5vw + 0.75rem, 1.375rem);
+    line-height: 1.3;
+  }
+  
+  /* 
+   * BODY LARGE (Lead Text)
+   * Mobile: 15px | Laptop 1440px: 16px | Ultra-Wide: 18px
+   * Used for: Subtitles, lead paragraphs
+   */
+  .text-body-large {
+    font-size: clamp(0.9375rem, 0.25vw + 0.75rem, 1.125rem);
+    line-height: 1.6;
+  }
+  
+  /* 
+   * BODY (Standard Text)
+   * Mobile: 14px | Laptop 1440px: 15px | Ultra-Wide: 16px
+   * Used for: Standard paragraph text
+   */
+  .text-body {
+    font-size: clamp(0.875rem, 0.15vw + 0.75rem, 1rem);
+    line-height: 1.6;
+  }
+  
+  /* 
+   * SMALL (Supporting Text)
+   * Mobile: 12px | Laptop 1440px: 13px | Ultra-Wide: 14px
+   * Used for: Captions, labels, meta info
+   */
+  .text-small {
+    font-size: clamp(0.75rem, 0.1vw + 0.625rem, 0.875rem);
+    line-height: 1.5;
+  }
+
+  /* ==========================================================================
+     FLUID SPACING SYSTEM
+     ========================================================================== */
+  
+  /* Section padding - vertical */
+  .py-section {
+    padding-top: clamp(2rem, 3vw + 1rem, 5rem);
+    padding-bottom: clamp(2rem, 3vw + 1rem, 5rem);
+  }
+  
+  /* Section padding bottom only */
+  .pb-section {
+    padding-bottom: clamp(2rem, 3vw + 1rem, 5rem);
+  }
+  
+  /* Section padding top only */
+  .pt-section {
+    padding-top: clamp(2rem, 3vw + 1rem, 5rem);
+  }
+  
+  /* Section padding - smaller */
+  .py-section-sm {
+    padding-top: clamp(1.5rem, 2vw + 0.5rem, 3rem);
+    padding-bottom: clamp(1.5rem, 2vw + 0.5rem, 3rem);
+  }
+  
+  /* Gap between grid items */
+  .gap-fluid {
+    gap: clamp(0.75rem, 1vw + 0.25rem, 1.5rem);
+  }
+  
+  /* Gap larger - for section spacing */
+  .gap-fluid-lg {
+    gap: clamp(1rem, 1.5vw + 0.5rem, 2.5rem);
+  }
+  
+  /* Margin bottom for titles */
+  .mb-title {
+    margin-bottom: clamp(0.75rem, 1vw + 0.25rem, 1.5rem);
+  }
+  
+  /* Margin bottom for sections */
+  .mb-section {
+    margin-bottom: clamp(1rem, 2vw + 0.5rem, 2.5rem);
+  }
+
+  /* ==========================================================================
+     CONTAINER SYSTEM - Optimized for 14" MacBook Pro (1512×982)
+     
+     Baseline viewport: 1512px
+     Target content width: ~1280px (leaves ~116px padding each side)
+     ========================================================================== */
+  
+  /* Main container - primary layout wrapper */
+  .container-fluid {
+    width: 100%;
+    max-width: 1320px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Responsive padding adjustments */
+  @media (min-width: 640px) {
+    .container-fluid {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-fluid {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+  
+  /* 14" MacBook Pro baseline (1280-1536px) */
+  @media (min-width: 1280px) {
+    .container-fluid {
+      max-width: 1280px;
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
+  
+  /* Large screens (1536px+) */
+  @media (min-width: 1536px) {
+    .container-fluid {
+      max-width: 1400px;
+      padding-left: 3rem;
+      padding-right: 3rem;
+    }
+  }
+  
+  /* Narrow container for text-heavy sections */
+  .container-narrow {
+    width: 100%;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  @media (min-width: 1280px) {
+    .container-narrow {
+      max-width: 800px;
+    }
+  }
+
+  /* Service description: Remove line-clamp on desktop */
+  @media (min-width: 640px) {
+    .service-description.line-clamp-2 {
+      -webkit-line-clamp: unset !important;
+      display: block !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   MINIMAL: Calendar Styling
+   ==========================================================================
+   Essential rules for timeline and column separators
+   ========================================================================== */
+
+/* ===== TIME GUTTER (Timeline - Left Column) ===== */
+.rbc-time-gutter {
+  background: #f9fafb !important;
+  border-right: none !important;
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 1 !important;
+}
+
+.rbc-time-header-gutter {
+  background: #f9fafb !important;
+  border-right: none !important;
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+}
+
+.rbc-label {
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 4px 10px !important;
+  text-align: right !important;
+}
+
+/* ===== COLUMN SEPARATORS ===== */
+/* Trennlinie zwischen Barber-Spalten */
+.rbc-time-content > .rbc-time-column:not(.rbc-time-gutter) + .rbc-time-column:not(.rbc-time-gutter) {
+  border-left: 1px solid #d1d5db !important;
+}
+
+/* ===== COLUMN SEPARATORS ===== */
+/* Trennlinie zwischen Barber-Spalten im Content */
+.rbc-time-content > .rbc-time-column:not(.rbc-time-gutter) + .rbc-time-column:not(.rbc-time-gutter) {
+  border-left: 1px solid #d1d5db !important;
+}
+
+/* ===== EVENTS (Appointments) ===== */
+.rbc-event {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 5 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+.rbc-event-content {
+  height: 100%;
+  visibility: visible !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Event card styling */
+.rbc-event-card {
+  display: flex !important;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 100%;
+  padding: 0 8px 6px 8px;
+  border-radius: 6px;
+  position: relative;
+  background: rgba(34, 197, 94, 0.12);
+  border-left: 4px solid #22c55e;
+  overflow: visible;
+  word-wrap: break-word;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 5 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.rbc-event-card .rbc-event-time {
+  font-weight: 500;
+  font-size: 11px;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.rbc-event-card .rbc-event-customer {
+  font-weight: 600;
+  font-size: 12px;
+  color: #111827;
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+}
+
+.rbc-event-card .rbc-event-service-name {
+  font-size: 10px;
+  color: #6b7280;
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+}
+
+.rbc-event:hover {
+  z-index: 10 !important;
+}
+
+/* Day slots - ensure events are visible */
+.rbc-day-slot {
+  position: relative !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Time columns - remove padding that constrains event width */
+.rbc-time-column {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.rbc-day-slot .rbc-events-container {
+  overflow: visible !important;
+  z-index: 5 !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure event containers are full width */
+.rbc-day-slot .rbc-events-container > *,
+.rbc-time-column .rbc-events-container > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Force events to span full column width */
+.rbc-time-column .rbc-event,
+.rbc-day-slot .rbc-event {
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure calendar fills available height */
+.rbc-calendar {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rbc-time-view,
+.rbc-day-view {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rbc-time-content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+.rbc-addons-dnd {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
