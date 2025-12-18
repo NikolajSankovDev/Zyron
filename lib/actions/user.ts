@@ -353,13 +353,6 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
       };
     }
 
-    // Revoke active Clerk sessions first so the client signs out cleanly
-    try {
-      await revokeClerkUserSessions(userId);
-    } catch (sessionError) {
-      logger.warn(`[deleteAccount] Failed to revoke sessions for ${userId}:`, sessionError as Error);
-    }
-
     // Remove Clerk user so the account can't be recreated mid-request
     try {
       await deleteClerkUser(userId);
@@ -382,6 +375,13 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
       return {
         error: "Your sign-in was removed but we could not clean up your data. Please contact support.",
       };
+    }
+
+    // Extra safety: revoke sessions again after delete (in case Clerk issued new one)
+    try {
+      await revokeClerkUserSessions(userId);
+    } catch (sessionError) {
+      logger.warn(`[deleteAccount] Post-delete revoke failed for ${userId}:`, sessionError as Error);
     }
 
     revalidatePath("/account");

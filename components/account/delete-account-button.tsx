@@ -39,11 +39,20 @@ export default function DeleteAccountButton({ userEmail }: DeleteAccountButtonPr
       }
 
       setOpen(false);
+      const redirectUrl = "/";
+
+      // Fire-and-forget sign out; don't block UI on Clerk errors
       try {
-        await signOut({ redirectUrl: "/" });
+        signOut({ redirectUrl }).catch(() => {});
       } catch (signOutError) {
-        // If signOut fails, still navigate away
-        router.replace("/");
+        // Ignore signOut errors
+      }
+
+      // Immediate hard redirect to clear any stale client state
+      if (typeof window !== "undefined") {
+        window.location.replace(redirectUrl);
+      } else {
+        router.replace(redirectUrl);
       }
     });
   };
