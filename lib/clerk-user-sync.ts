@@ -148,6 +148,19 @@ export async function getOrCreateUserFromClerk(
       const currentPhoneEmpty = !currentPhone || currentPhone.trim().length === 0;
       
       logger.info(`[getOrCreateUserFromClerk] Updating existing user ${user.id}: current phone: "${currentPhone}" (empty: ${currentPhoneEmpty}), phone from Clerk: ${phoneFromClerk || 'none'}`);
+      const nameFromClerk = formattedUser.fullName || 
+                (formattedUser.firstName && formattedUser.lastName 
+                  ? `${formattedUser.firstName} ${formattedUser.lastName}`.trim()
+                  : formattedUser.email);
+      const currentName = (user.name || "").trim();
+      const shouldUseClerkName = (!currentName || currentName === user.email) && !!nameFromClerk;
+      const finalName = shouldUseClerkName
+        ? nameFromClerk
+        : (currentName || nameFromClerk || formattedUser.email);
+      
+      if (!shouldUseClerkName && currentName && nameFromClerk && currentName !== nameFromClerk) {
+        logger.info(`[getOrCreateUserFromClerk] Preserving Prisma name "${currentName}" over Clerk name "${nameFromClerk}"`);
+      }
       
       // Determine final phone value:
       // - If Clerk has a phone and it's different from current, use Clerk's phone
@@ -176,10 +189,7 @@ export async function getOrCreateUserFromClerk(
         where: { id: user.id },
         data: {
           email: formattedUser.email,
-          name: formattedUser.fullName || 
-                (formattedUser.firstName && formattedUser.lastName 
-                  ? `${formattedUser.firstName} ${formattedUser.lastName}`.trim()
-                  : formattedUser.email),
+          name: finalName,
           phone: finalPhone,
           role: resolvedRole,
           updatedAt: new Date(),
