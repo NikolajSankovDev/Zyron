@@ -6,6 +6,7 @@ import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek as dateFnsStartOfWeek, getDay, setHours, setMinutes, startOfDay } from "date-fns";
 import { de, enUS, ru } from "date-fns/locale";
 import { useLocale } from "next-intl";
+import Image from "next/image";
 import type { AppointmentDisplayData, BarberDisplayData } from "@/lib/types/admin-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
@@ -105,10 +106,46 @@ export function AdminCalendar({
 
   // Simple Resource header - just show title (barber name)
   const ResourceHeader = useCallback(({ resource }: { resource: any }) => {
-    const displayName = resource.title;
+    const barber = resource.barber as BarberDisplayData | undefined;
+    const displayName = barber?.displayName || resource.title;
+    const initials = displayName
+      ? displayName
+          .split(" ")
+          .map((namePart) => namePart.charAt(0))
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
+      : "";
+    const workingHours = barber?.workingHours
+      ? `${barber.workingHours.startTime} – ${barber.workingHours.endTime}`
+      : null;
+
     return (
-      <div className="text-center py-2 text-sm font-semibold text-gray-900">
-        {displayName}
+      <div className="rbc-custom-barber-header flex flex-col items-center gap-1.5 py-3 px-2 text-center">
+        <div className="relative h-12 w-12">
+          {barber?.avatar ? (
+            <Image
+              src={barber.avatar}
+              alt={displayName}
+              width={48}
+              height={48}
+              className="h-12 w-12 rounded-full object-cover shadow-sm ring-2 ring-white"
+            />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 font-semibold flex items-center justify-center uppercase shadow-inner ring-2 ring-white">
+              {initials}
+            </div>
+          )}
+          <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/5" />
+        </div>
+        <div className="text-sm font-semibold text-gray-900 leading-tight">
+          {displayName}
+        </div>
+        {workingHours && (
+          <div className="text-[11px] font-medium text-gray-500 tracking-wide">
+            {workingHours}
+          </div>
+        )}
       </div>
     );
   }, []);
@@ -332,7 +369,10 @@ export function AdminCalendar({
   const step = timeInterval;
 
   return (
-    <div ref={calendarRef} className="w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div
+      ref={calendarRef}
+      className="rbc-calendar-wrapper w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden"
+    >
       {/* @ts-expect-error - react-big-calendar supports string accessors but types expect functions */}
       <DragAndDropCalendar
         localizer={localizer}

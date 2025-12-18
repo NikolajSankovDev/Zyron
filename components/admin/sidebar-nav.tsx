@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
+import { locales, defaultLocale } from "@/lib/i18n/config-constants";
 import {
   LayoutDashboard,
   Calendar,
@@ -25,10 +26,42 @@ const baseNavItems: NavItem[] = [
   { href: "/admin/services", labelKey: "services", icon: Settings },
 ];
 
+const fallbackLabels: Record<string, string> = {
+  dashboard: "Dashboard",
+  calendar: "Calendar",
+  customers: "Customers",
+  barbers: "Barbers",
+  services: "Services",
+};
+
+function deriveLocaleFromPath(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  const candidate = segments[0];
+  if (candidate && locales.includes(candidate as (typeof locales)[number])) {
+    return candidate;
+  }
+  return defaultLocale;
+}
+
 export function SidebarNav() {
   const pathname = usePathname();
-  const locale = useLocale();
-  const t = useTranslations("admin");
+  let locale = deriveLocaleFromPath(pathname);
+  try {
+    locale = useLocale();
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("SidebarNav: Falling back to derived locale", error);
+    }
+  }
+
+  let translate = (key: string) => fallbackLabels[key] ?? key;
+  try {
+    translate = useTranslations("admin");
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("SidebarNav: Falling back to default labels", error);
+    }
+  }
 
   // Build nav items with locale prefix
   const navItems = baseNavItems.map(item => ({
@@ -52,11 +85,10 @@ export function SidebarNav() {
             }`}
           >
             <Icon className="h-5 w-5 flex-shrink-0" />
-            {t(item.labelKey)}
+            {translate(item.labelKey)}
           </Link>
         );
       })}
     </nav>
   );
 }
-
