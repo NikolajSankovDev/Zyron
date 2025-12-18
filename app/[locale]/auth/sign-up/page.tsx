@@ -7,12 +7,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth, useSignUp, useUser, useClerk } from "@clerk/nextjs";
+import { useAuth, useSignUp } from "@clerk/nextjs";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { logger } from "@/lib/logger";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import { savePhoneAfterSignUp } from "@/lib/actions/user";
+// Phone persistence handled via API routes after session is active
 
 export default function SignUpPage() {
   const t = useTranslations("auth");
@@ -20,8 +20,6 @@ export default function SignUpPage() {
   const router = useRouter();
   const { signUp, setActive, isLoaded } = useSignUp();
   const { isSignedIn } = useAuth();
-  const { user, isLoaded: userLoaded } = useUser();
-  const clerk = useClerk();
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,6 +34,46 @@ export default function SignUpPage() {
     password: "",
     confirmPassword: "",
   });
+
+  // Persist phone via authenticated API and fallback sync
+  const persistPhone = async (phone: string) => {
+    const payload = { phone: phone.trim() };
+    try {
+      const res = await fetch("/api/user/phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        logger.info(`[signup] Phone saved via /api/user/phone: ${data.phone || payload.phone}`);
+        return true;
+      }
+
+      const err = await res.json().catch(() => ({}));
+      logger.warn(`[signup] /api/user/phone failed: ${err.error || res.status}`);
+    } catch (err) {
+      logger.error("[signup] Error calling /api/user/phone", err as Error);
+    }
+
+    // Fallback: trigger sync-phone to pull from Clerk if metadata already set elsewhere
+    try {
+      const res = await fetch("/api/user/sync-phone", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        logger.info(`[signup] Fallback /api/user/sync-phone success: ${data.phone || "unknown"}`);
+        return true;
+      }
+      if (res.status === 401) {
+        logger.warn("[signup] /api/user/sync-phone unauthorized (session not ready yet)");
+      }
+    } catch (err) {
+      logger.error("[signup] Error calling /api/user/sync-phone", err as Error);
+    }
+
+    return false;
+  };
 
   // Redirect if already signed in
   useEffect(() => {
@@ -93,32 +131,12 @@ export default function SignUpPage() {
         
         logger.info("User registration successful");
         
-        // Store phone number in background - don't wait for it
+        // Store phone number before navigating away so persistence can't be cancelled
         if (formData.phone.trim()) {
-          const phoneNumber = formData.phone.trim();
-          
-          // #region agent log
-          const signupCallLog = JSON.stringify({location:'app/[locale]/auth/sign-up/page.tsx:handleSubmit:savePhone',message:'Calling savePhoneAfterSignUp (non-blocking)',data:{phoneNumber:phoneNumber.substring(0,10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,E'});
-          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:signupCallLog}).catch(()=>{});
-          // #endregion
-          
-          // Fire and forget - don't wait for phone save
-          savePhoneAfterSignUp(phoneNumber).then((result) => {
-            // #region agent log
-            const signupResultLog = JSON.stringify({location:'app/[locale]/auth/sign-up/page.tsx:handleSubmit:savePhoneResult',message:'savePhoneAfterSignUp result',data:{success:result.success,error:result.error||'none',details:result.details||'none'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,E'});
-            fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:signupResultLog}).catch(()=>{});
-            // #endregion
-            if (result.success) {
-              logger.info(`✓ Successfully saved phone number during sign-up: ${result.details || ''}`);
-            } else {
-              logger.warn(`⚠ Failed to save phone during sign-up: ${result.error} - ${result.details || ''}`);
-            }
-          }).catch((error) => {
-            logger.error("Error calling savePhoneAfterSignUp:", error);
-          });
+          await persistPhone(formData.phone);
         }
         
-        // Redirect immediately - don't wait for phone save
+        // Redirect immediately after ensuring phone save attempt completed
         window.location.href = `/${locale}`;
         // Don't set loading to false here as we're redirecting
         return;
@@ -173,32 +191,12 @@ export default function SignUpPage() {
         
         logger.info("User verification successful");
         
-        // Store phone number in background - don't wait for it
+        // Store phone number before navigating away so persistence can't be cancelled
         if (formData.phone.trim()) {
-          const phoneNumber = formData.phone.trim();
-          
-          // #region agent log
-          const verifyCallLog = JSON.stringify({location:'app/[locale]/auth/sign-up/page.tsx:handleVerification:savePhone',message:'Calling savePhoneAfterSignUp after verification (non-blocking)',data:{phoneNumber:phoneNumber.substring(0,10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,E'});
-          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:verifyCallLog}).catch(()=>{});
-          // #endregion
-          
-          // Fire and forget - don't wait for phone save
-          savePhoneAfterSignUp(phoneNumber).then((result) => {
-            // #region agent log
-            const verifyResultLog = JSON.stringify({location:'app/[locale]/auth/sign-up/page.tsx:handleVerification:savePhoneResult',message:'savePhoneAfterSignUp result after verification',data:{success:result.success,error:result.error||'none',details:result.details||'none'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,E'});
-            fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:verifyResultLog}).catch(()=>{});
-            // #endregion
-            if (result.success) {
-              logger.info(`✓ Successfully saved phone number during verification: ${result.details || ''}`);
-            } else {
-              logger.warn(`⚠ Failed to save phone during verification: ${result.error} - ${result.details || ''}`);
-            }
-          }).catch((error) => {
-            logger.error("Error calling savePhoneAfterSignUp:", error);
-          });
+          await persistPhone(formData.phone);
         }
         
-        // Redirect immediately - don't wait for phone save
+        // Redirect immediately - don't wait for phone save now that it completed
         logger.info("Redirecting after successful verification");
         window.location.href = `/${locale}`;
         // Don't set loading to false here as we're redirecting
@@ -483,4 +481,3 @@ export default function SignUpPage() {
     </>
   );
 }
-
