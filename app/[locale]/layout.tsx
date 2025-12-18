@@ -1,5 +1,3 @@
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { locales } from "@/lib/i18n/config-constants";
 
@@ -22,11 +20,9 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  const messages = await getMessages();
-
   return (
-    <NextIntlClientProvider messages={messages}>
+    <>
       {children}
-    </NextIntlClientProvider>
+    </>
   );
 }

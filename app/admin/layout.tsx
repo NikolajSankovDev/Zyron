@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { MobileSidebar } from "@/components/admin/mobile-sidebar";
 import { SidebarNav } from "@/components/admin/sidebar-nav";
 import { AdminTopBar } from "@/components/admin/admin-top-bar";
-import { getTranslations, getLocale, getMessages } from "next-intl/server";
-import { NextIntlClientProvider } from "next-intl";
+import { getTranslations, getLocale } from "next-intl/server";
 import { SidebarMiniCalendarWrapper } from "@/components/admin/sidebar-mini-calendar-wrapper";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
 
@@ -15,9 +14,8 @@ export default async function AdminLayout({
   const t = await getTranslations("admin");
   const tNav = await getTranslations("nav");
   
-  // Get locale and messages for NextIntlClientProvider
+  // Get locale for building links and redirects
   const locale = await getLocale();
-  const messages = await getMessages();
 
   // Get current user from Prisma (synced from Clerk)
   const user = await getCurrentPrismaUser();
@@ -39,8 +37,7 @@ export default async function AdminLayout({
   ];
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-80 lg:bg-gray-900 lg:border-r lg:border-gray-800">
         <div className="flex h-full flex-col">
@@ -72,7 +69,5 @@ export default async function AdminLayout({
         <main className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-4 sm:pb-6 lg:pb-8 flex-1 min-h-0 overflow-hidden">{children}</main>
       </div>
     </div>
-    </NextIntlClientProvider>
   );
 }
-
