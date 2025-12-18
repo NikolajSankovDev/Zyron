@@ -33,7 +33,7 @@ export default async function ProfilePage({
 
   return (
     <div className="min-h-screen bg-black">
-      <section className="bg-black pt-section">
+      <section className="bg-black pt-24 sm:pt-28 lg:pt-32">
         <div className="container-fluid">
           <div className="max-w-4xl mx-auto">
             <Link

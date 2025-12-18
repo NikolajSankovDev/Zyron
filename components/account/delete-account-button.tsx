@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { deleteAccount } from "@/lib/actions/user";
+import { useClerk } from "@clerk/nextjs";
 
 interface DeleteAccountButtonProps {
   userEmail?: string | null;
@@ -22,6 +23,7 @@ interface DeleteAccountButtonProps {
 export default function DeleteAccountButton({ userEmail }: DeleteAccountButtonProps) {
   const t = useTranslations("account");
   const router = useRouter();
+  const { signOut } = useClerk();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -37,7 +39,12 @@ export default function DeleteAccountButton({ userEmail }: DeleteAccountButtonPr
       }
 
       setOpen(false);
-      router.replace("/");
+      try {
+        await signOut({ redirectUrl: "/" });
+      } catch (signOutError) {
+        // If signOut fails, still navigate away
+        router.replace("/");
+      }
     });
   };
 

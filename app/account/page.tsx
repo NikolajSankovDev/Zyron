@@ -7,6 +7,7 @@ import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
 import { format } from "date-fns";
 import { Calendar, Clock, User, Scissors } from "lucide-react";
 import PhoneSyncChecker from "@/components/account/phone-sync-checker";
+import DeleteAccountButton from "@/components/account/delete-account-button";
 
 // Helper function to get status badge styling
 function getStatusBadgeStyle(status: string) {
@@ -171,7 +172,7 @@ export default async function AccountPage({
                   href="/account/profile"
                   className="text-primary hover:text-primary/80 text-small font-medium transition-colors"
                 >
-                  {t("myProfile")} →
+                  {t("editProfile")} →
                 </a>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -333,13 +334,13 @@ export default async function AccountPage({
                                   <div className="flex items-start gap-3">
                                     <Scissors className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
                                     <div>
-                                      <p className="text-small text-gray-400 mb-1">Services</p>
+                                      <p className="text-small text-gray-400 mb-1">{t("services")}</p>
                                       <p className="text-body text-gray-300">
                                         {services.join(", ")}
                                       </p>
                                       {totalDuration > 0 && (
                                         <p className="text-small text-gray-500 mt-1">
-                                          Duration: {formatDuration(totalDuration)}
+                                          {t("duration")}: {formatDuration(totalDuration, t)}
                                         </p>
                                       )}
                                     </div>
@@ -363,6 +364,26 @@ export default async function AccountPage({
                     })}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Delete Account */}
+            <Card className="bg-black/60 border-red-900/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-red-200 text-lg">{t("deleteAccountTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="space-y-2 max-w-2xl">
+                    <p className="text-body text-gray-200">{t("deleteAccountDescription")}</p>
+                    <p className="text-small text-red-300">
+                      {t("deleteAccountWarning", { email: user?.email || t("notAvailable") })}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <DeleteAccountButton userEmail={user?.email} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

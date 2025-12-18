@@ -3,7 +3,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPrismaUser, getOrCreateUserFromClerk } from "@/lib/clerk-user-sync";
-import { updateClerkUserMetadata, getClerkUser, deleteClerkUser } from "@/lib/clerk";
+import { updateClerkUserMetadata, getClerkUser, deleteClerkUser, revokeClerkUserSessions } from "@/lib/clerk";
 import { revalidatePath } from "next/cache";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
@@ -353,7 +353,14 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
       };
     }
 
-    // Remove Clerk user first so the account can't be recreated mid-request
+    // Revoke active Clerk sessions first so the client signs out cleanly
+    try {
+      await revokeClerkUserSessions(userId);
+    } catch (sessionError) {
+      logger.warn(`[deleteAccount] Failed to revoke sessions for ${userId}:`, sessionError as Error);
+    }
+
+    // Remove Clerk user so the account can't be recreated mid-request
     try {
       await deleteClerkUser(userId);
       logger.info(`[deleteAccount] Deleted Clerk user ${userId}`);

@@ -97,6 +97,24 @@ export async function deleteClerkUser(userId: string) {
   }
 }
 
+// Revoke all active Clerk sessions for a user (safe to call before deletion)
+export async function revokeClerkUserSessions(userId: string) {
+  try {
+    const sessions = await clerkClient.sessions.getSessionList({ userId })
+    let revoked = 0
+
+    for (const session of sessions) {
+      await clerkClient.sessions.revokeSession(session.id)
+      revoked++
+    }
+
+    logger.info(`Revoked ${revoked} Clerk session(s) for user: ${userId}`)
+  } catch (error) {
+    logger.error(`Failed to revoke Clerk sessions for user: ${userId}`, error as Error)
+    throw error
+  }
+}
+
 // Set user role
 export async function setClerkUserRole(userId: string, role: string) {
   try {
@@ -262,4 +280,3 @@ export function isClerkAdmin(user: any): boolean {
   const role = getClerkUserRole(user)
   return role === 'ADMIN' || role === 'BARBER'
 }
-
