@@ -62,6 +62,15 @@ export default async function HomePage({
     },
     []
   );
+  // Prefer a fixed display order: Daniyar first, then Valentyn, then others
+  const preferredOrder = ["Daniyar", "Valentyn"];
+  const orderedBarbers = preferredOrder
+    .map((name) => barbers.find((barber) => barber.displayName === name))
+    .filter((barber): barber is NonNullable<typeof barber> => Boolean(barber));
+  const remainingBarbers = barbers.filter(
+    (barber) => !preferredOrder.includes(barber.displayName)
+  );
+  const barbersToShow = [...orderedBarbers, ...remainingBarbers].slice(0, 2);
 
   return (
     <main className="min-h-screen bg-black pt-16 lg:pt-[72px]">
@@ -160,8 +169,8 @@ export default async function HomePage({
           </div>
 
           {/* Tablet/Desktop: Card-Grid Layout */}
-          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-5 xl:gap-6 max-w-5xl mx-auto">
-            <div className="bg-gray-900 rounded-xl p-4 sm:p-5 lg:p-5 hover:border-primary border-2 border-transparent transition-all flex flex-col items-center text-center">
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-5 xl:gap-6 max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto">
+            <div className="bg-gray-900 rounded-xl p-4 sm:p-5 hover:border-primary border-2 border-transparent transition-all flex flex-col items-center text-center w-full max-w-[320px] mx-auto">
               <div className="flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 bg-primary/20 rounded-full mb-3 lg:mb-3.5">
                 <Scissors className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
               </div>
@@ -178,7 +187,7 @@ export default async function HomePage({
               </Link>
             </div>
 
-            <div className="bg-gray-900 rounded-xl p-4 sm:p-5 lg:p-5 hover:border-primary border-2 border-transparent transition-all flex flex-col items-center text-center">
+            <div className="bg-gray-900 rounded-xl p-4 sm:p-5 hover:border-primary border-2 border-transparent transition-all flex flex-col items-center text-center w-full max-w-[320px] mx-auto">
               <div className="flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 bg-primary/20 rounded-full mb-3 lg:mb-3.5">
                 <Users className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
               </div>
@@ -195,7 +204,7 @@ export default async function HomePage({
               </Link>
             </div>
 
-            <div className="bg-gray-900 rounded-xl p-4 sm:p-5 lg:p-5 hover:border-primary border-2 border-transparent transition-all flex flex-col items-center text-center sm:col-span-2 lg:col-span-1">
+            <div className="bg-gray-900 rounded-xl p-4 sm:p-5 hover:border-primary border-2 border-transparent transition-all flex flex-col items-center text-center sm:col-span-2 lg:col-span-1 w-full max-w-[320px] mx-auto">
               <div className="flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 bg-primary/20 rounded-full mb-3 lg:mb-3.5">
                 <Sparkles className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
               </div>
@@ -231,7 +240,7 @@ export default async function HomePage({
             
             {/* Barber Cards - Centered */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-24 sm:gap-28 lg:gap-32 xl:gap-36">
-              {barbers.slice(0, 2).map((barber, barberIndex) => {
+              {barbersToShow.map((barber, barberIndex) => {
                 const barberImage = barberImages[barber.displayName] || null;
                 
                 const getLanguageName = (code: string) => {
@@ -296,9 +305,115 @@ export default async function HomePage({
             </h2>
           </div>
 
-          <div className="grid lg:grid-cols-[1fr_1.5fr] gap-6 sm:gap-8 lg:gap-12 items-center max-w-5xl mx-auto">
-            {/* Contact Info */}
-            <div className="space-y-8 lg:pr-4">
+          <div className="grid gap-6 sm:gap-8 xl:gap-12 max-w-5xl mx-auto xl:grid-cols-[0.9fr_1.1fr] items-center">
+            {/* Contact Info - Mobile */}
+            <div className="sm:hidden xl:pr-6">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Address & Contact Combined */}
+                <div className="rounded-2xl bg-gray-900/50 px-4 py-5 flex flex-col items-center text-center">
+                  <div className="flex items-center justify-center w-10 h-10 bg-primary/20 rounded-full mb-3">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="text-base font-semibold text-white mb-2">
+                    {t("address")}
+                  </h3>
+                  <div className="space-y-0.5 text-sm">
+                    <p className="text-gray-300">Konstanzer Str. 58</p>
+                    <p className="text-gray-300">10707 Berlin</p>
+                  </div>
+                  <div className="mt-3 space-y-1 text-sm">
+                    <a 
+                      href="tel:+491621614426" 
+                      className="block text-gray-300 hover:text-primary transition-colors"
+                    >
+                      +49 162 161 4426
+                    </a>
+                    <a 
+                      href="mailto:info@zyronstudio.de" 
+                      className="block text-gray-300 hover:text-primary transition-colors"
+                    >
+                      info@zyronstudio.de
+                    </a>
+                  </div>
+                </div>
+
+                {/* Opening Hours */}
+                <div className="rounded-2xl bg-gray-900/50 px-4 py-5 flex flex-col items-center text-center">
+                  <div className="flex items-center justify-center w-10 h-10 bg-primary/20 rounded-full mb-3">
+                    <Clock className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="text-base font-semibold text-white mb-2">
+                    {t("openingHours")}
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="font-semibold text-white">{t("mondaySaturday")}</p>
+                      <p className="text-gray-300">10:00 - 14:30</p>
+                      <p className="text-gray-300">15:00 - 20:00</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">{t("sundayClosed")}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Info - Tablet */}
+            <div className="hidden sm:flex lg:hidden flex-col items-center text-center gap-6 lg:gap-8 xl:pr-6">
+              <div className="grid w-full max-w-3xl grid-cols-2 gap-5">
+                {/* Address & Contact Combined */}
+                <div className="rounded-2xl bg-gray-900/40 px-7 py-7 flex flex-col items-center text-center h-full">
+                  <div className="flex items-center justify-center w-12 h-12 bg-primary/20 rounded-full mb-4">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-card-title font-bold text-white mb-3">
+                    {t("address")}
+                  </h3>
+                  <div className="space-y-1">
+                    <p className="text-body text-gray-300">Konstanzer Str. 58</p>
+                    <p className="text-body text-gray-300">10707 Berlin</p>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <a 
+                      href="tel:+491621614426" 
+                      className="block text-body text-gray-300 hover:text-primary transition-colors"
+                    >
+                      +49 162 161 4426
+                    </a>
+                    <a 
+                      href="mailto:info@zyronstudio.de" 
+                      className="block text-body text-gray-300 hover:text-primary transition-colors"
+                    >
+                      info@zyronstudio.de
+                    </a>
+                  </div>
+                </div>
+
+                {/* Opening Hours */}
+                <div className="rounded-2xl bg-gray-900/40 px-7 py-7 flex flex-col items-center text-center h-full">
+                  <div className="flex items-center justify-center w-12 h-12 bg-primary/20 rounded-full mb-4">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-card-title font-bold text-white mb-3">
+                    {t("openingHours")}
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-body font-semibold text-white">{t("mondaySaturday")}</p>
+                      <p className="text-body text-gray-300">10:00 - 14:30</p>
+                      <p className="text-body text-gray-300">15:00 - 20:00</p>
+                    </div>
+                    <div>
+                      <p className="text-body font-semibold text-white">{t("sundayClosed")}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Info - Desktop */}
+            <div className="hidden lg:block space-y-8 lg:pr-4">
               {/* Address & Contact Combined */}
               <div>
                 <div className="flex items-center gap-3 mb-4">
@@ -351,7 +466,7 @@ export default async function HomePage({
             </div>
 
             {/* Google Maps */}
-            <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border-2 border-gray-800 shadow-lg">
+            <div className="relative w-full aspect-[4/3] xl:aspect-[5/4] rounded-xl overflow-hidden border-2 border-gray-800 shadow-lg order-first xl:order-none">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2427.5!2d13.3117856!3d52.4971329!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a8513dfd16bb15%3A0x7972b7a2b9ab3b31!2sZyron%20barber%20studio%20%7C%20Kudamm!5e0!3m2!1sde!2sde!4v1735654321000!5m2!1sde!2sde"
                 width="100%"

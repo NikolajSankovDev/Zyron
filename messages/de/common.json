@@ -105,7 +105,11 @@
     "errorOccurred": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
     "enterCodeSentToEmail": "Geben Sie den an Ihre E-Mail gesendeten Code ein",
     "verificationCode": "Bestätigungscode",
-    "verifyCode": "Code bestätigen"
+    "verifyCode": "Code bestätigen",
+    "alreadyLoggedInTitle": "Du bist bereits angemeldet",
+    "alreadyLoggedInDescription": "Nutze deine aktuelle Sitzung oder melde dich ab, um das Konto zu wechseln.",
+    "goHome": "Zur Startseite",
+    "logout": "Abmelden"
   },
   "home": {
     "title": "Zyron Barber Studio",
@@ -298,7 +302,15 @@
     "minutes": "Minuten",
     "hour": "Stunde",
     "hours": "Stunden",
-    "minute": "Minute"
+    "minute": "Minute",
+    "deleteAccountTitle": "Konto löschen",
+    "deleteAccountDescription": "Entfernt dauerhaft dein Profil, deine Termine und den Zugang.",
+    "deleteAccountWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Wir entfernen {email} und den gesamten Buchungsverlauf.",
+    "deleteAccountButton": "Konto löschen",
+    "deleteAccountConfirmTitle": "Möchtest du dein Konto wirklich löschen?",
+    "deleteAccountConfirmBody": "Dein Profil, deine Termine und gespeicherten Daten werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteAccountConfirmAction": "Konto endgültig löschen",
+    "deleteAccountProcessing": "Wird gelöscht...",
+    "deleteAccountBack": "Zurück"
   }
 }
-

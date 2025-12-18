@@ -118,7 +118,11 @@
     "errorOccurred": "An error occurred. Please try again.",
     "enterCodeSentToEmail": "Enter the code sent to your email",
     "verificationCode": "Verification Code",
-    "verifyCode": "Verify Code"
+    "verifyCode": "Verify Code",
+    "alreadyLoggedInTitle": "You’re already signed in",
+    "alreadyLoggedInDescription": "Use your current session or sign out to switch accounts.",
+    "goHome": "Go to homepage",
+    "logout": "Sign out"
   },
   "home": {
     "title": "Zyron Barber Studio",
@@ -311,7 +315,15 @@
     "minutes": "minutes",
     "hour": "hour",
     "hours": "hours",
-    "minute": "minute"
+    "minute": "minute",
+    "deleteAccountTitle": "Delete account",
+    "deleteAccountDescription": "Permanently remove your profile, appointments, and sign-in access.",
+    "deleteAccountWarning": "This action cannot be undone. We'll remove {email} and all booking history.",
+    "deleteAccountButton": "Delete account",
+    "deleteAccountConfirmTitle": "Are you sure you want to delete your account?",
+    "deleteAccountConfirmBody": "Your profile, appointments, and saved details will be permanently removed. This action cannot be undone.",
+    "deleteAccountConfirmAction": "Delete my account",
+    "deleteAccountProcessing": "Deleting...",
+    "deleteAccountBack": "Back"
   }
 }
-

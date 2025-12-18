@@ -15,7 +15,7 @@ export default function Header() {
   const locale = useLocale();
   const router = useRouter();
   const { user, isLoaded: userLoaded } = useUser();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { signOut } = useClerk();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,33 +28,26 @@ export default function Header() {
   const [userDropdownCoords, setUserDropdownCoords] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
-    if (userLoaded && user && isSignedIn) {
-      // Get role from Clerk's publicMetadata
+    if (!userLoaded || !authLoaded) return;
+
+    if (isSignedIn && user) {
       const role = (user.publicMetadata?.role as string) || "CUSTOMER";
-      
-      // Only show as authenticated if user is a CUSTOMER
-      // Admin/Barber should not see login status on public pages
-      if (role === "CUSTOMER") {
-        setIsAuthenticated(true);
-        setIsAdmin(false);
-        setUserName(user.firstName && user.lastName 
+      setIsAuthenticated(true);
+      setIsAdmin(["ADMIN", "BARBER"].includes(role));
+      setUserName(
+        user.firstName && user.lastName
           ? `${user.firstName} ${user.lastName}`.trim()
-          : user.firstName || user.lastName || null);
-        setUserEmail(user.primaryEmailAddress?.emailAddress || null);
-      } else {
-        // Admin/Barber - don't show as logged in on public pages
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-        setUserName(null);
-        setUserEmail(null);
-      }
-    } else if (userLoaded && !isSignedIn) {
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      setUserName(null);
-      setUserEmail(null);
+          : user.firstName || user.lastName || null
+      );
+      setUserEmail(user.primaryEmailAddress?.emailAddress || null);
+      return;
     }
-  }, [user, userLoaded, isSignedIn]);
+
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setUserName(null);
+    setUserEmail(null);
+  }, [user, userLoaded, authLoaded, isSignedIn]);
 
   // Update user dropdown coordinates when opening
   useEffect(() => {
@@ -115,15 +108,15 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-[999] bg-black">
       <div className="container-fluid">
-        <div className="flex items-center justify-between h-16 md:h-18 relative min-h-[64px] md:min-h-[72px]">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 md:h-18 min-h-[64px] md:min-h-[72px] gap-2">
           {/* Left Side */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Mobile: Language Switcher */}
             <div className="md:hidden">
               <LanguageSwitcher />
             </div>
             {/* Desktop: Logo */}
-            <Link href={`/${locale}`} className="hidden md:flex items-center justify-center h-12">
+            <Link href={`/${locale}`} className="hidden md:flex items-center justify-center h-12 flex-shrink-0">
               <div className="relative h-10 w-auto max-w-[120px] flex items-center justify-center overflow-hidden">
                 <img
                   src="/logo/logo.jpg"
@@ -146,7 +139,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop: Navigation Links - Center */}
-          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+          <nav className="hidden lg:flex items-center justify-center gap-6 xl:gap-8 mx-auto">
             <Link
               href={`/${locale}`}
               className="text-body font-semibold text-white hover:text-primary transition-colors py-2"
@@ -168,7 +161,7 @@ export default function Header() {
           </nav>
 
           {/* Right Side */}
-          <div className="flex items-center gap-3 md:gap-4 ml-auto flex-shrink-0 min-w-0">
+          <div className="flex items-center gap-3 md:gap-4 justify-end min-w-0">
             {/* Desktop: Language Switcher and Auth */}
             <div className="hidden md:flex items-center gap-3 flex-shrink-0 min-w-0">
               <LanguageSwitcher />
@@ -265,10 +258,10 @@ export default function Header() {
               </Link>
             </div>
 
-            {/* Mobile: Burger Menu - Right */}
+            {/* Mobile/Tablet: Burger Menu - Right */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 -mr-2 text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="lg:hidden p-2 -mr-2 text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -278,7 +271,7 @@ export default function Header() {
 
         {/* Mobile Menu */}
         <div 
-          className={`md:hidden overflow-hidden transition-all duration-200 ease-out ${
+          className={`lg:hidden overflow-hidden transition-all duration-200 ease-out ${
             mobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
@@ -324,17 +317,32 @@ export default function Header() {
               </Link>
               
               {isAuthenticated ? (
-                <Link
-                  href="/account"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block"
-                >
-                  <Button 
-                    className="w-full bg-white/10 hover:bg-white/15 text-white font-medium h-11 rounded-lg text-[15px] border border-white/20"
+                <>
+                  <Link
+                    href="/account"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block"
                   >
-                    {t("account")}
-                  </Button>
-                </Link>
+                    <Button 
+                      className="w-full bg-white/10 hover:bg-white/15 text-white font-medium h-11 rounded-lg text-[15px] border border-white/20"
+                    >
+                      {t("account")}
+                    </Button>
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href={`/${locale}/admin`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block"
+                    >
+                      <Button 
+                        className="w-full bg-white/10 hover:bg-white/15 text-white font-medium h-11 rounded-lg text-[15px] border border-white/20"
+                      >
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
+                </>
               ) : (
                 <Link
                   href={`/${locale}/auth/sign-in`}

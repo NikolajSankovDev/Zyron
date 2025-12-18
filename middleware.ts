@@ -34,16 +34,20 @@ export default clerkMiddleware(async (auth, req) => {
     console.error('Auth error in middleware:', error);
   }
 
-  // Skip locale prefixing for account and API routes
-  if (path.startsWith("/account") || path.startsWith("/api")) {
-    // Account routes - any authenticated user
-    if (path.startsWith("/account")) {
-      if (!userId) {
-        return NextResponse.redirect(new URL(`/${defaultLocale}/auth/sign-in`, req.url));
-      }
+  // Skip locale prefixing for account routes; still enforce auth
+  if (path.startsWith("/account")) {
+    if (!userId) {
+      return NextResponse.redirect(new URL(`/${defaultLocale}/auth/sign-in`, req.url));
     }
+    return NextResponse.next();
+  }
 
-    // Let these routes pass through without locale prefixing
+  // API routes: allow Clerk auth to run for /api/user* so auth() works there; otherwise skip
+  if (path.startsWith("/api")) {
+    if (path.startsWith("/api/user")) {
+      // Let Clerk run; downstream handlers will read auth()
+      return NextResponse.next();
+    }
     return NextResponse.next();
   }
 
@@ -92,8 +96,10 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Match all pathnames except for
-    // - … if they start with `/api`, `/_next` or `/_vercel`
+    // - … if they start with `/_next` or `/_vercel`
     // - … the ones containing a dot (e.g. `favicon.ico`)
-    "/((?!api|_next|_vercel|.*\\..*).*)",
+    "/((?!_next|_vercel|.*\\..*).*)",
+    // Explicitly include auth-protected API routes that need Clerk
+    "/api/user/:path*",
   ],
 };

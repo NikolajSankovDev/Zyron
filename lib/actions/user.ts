@@ -3,11 +3,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPrismaUser, getOrCreateUserFromClerk } from "@/lib/clerk-user-sync";
-import { updateClerkUserMetadata, getClerkUser } from "@/lib/clerk";
+import { updateClerkUserMetadata, getClerkUser, deleteClerkUser } from "@/lib/clerk";
 import { revalidatePath } from "next/cache";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
-import { createClerkClient } from "@clerk/nextjs/server";
 
 const updateProfileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -235,7 +234,7 @@ export async function savePhoneAfterSignUp(phone: string): Promise<{ success?: b
       // Continue anyway - we'll try to update Prisma directly
     }
 
-    // Step 2: Update Prisma directly with AGGRESSIVE retries (exponential backoff up to 5 seconds)
+    // Step 2: Try a single, fast Prisma sync; don't block UX for long
     if (!prisma) {
       logger.error(`[savePhoneAfterSignUp] Prisma client not available`);
       return {
@@ -243,68 +242,36 @@ export async function savePhoneAfterSignUp(phone: string): Promise<{ success?: b
       };
     }
 
-    let prismaUser = null;
-    const maxRetries = 15; // More retries for reliability
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        // Try to find user by clerkUserId
-        prismaUser = await prisma.user.findUnique({
-          where: { clerkUserId: userId },
-        });
+    try {
+      // Try to find existing user and update phone; avoid overwriting with empty
+      const prismaUser = await prisma.user.findUnique({
+        where: { clerkUserId: userId },
+      });
 
-        if (prismaUser) {
-          // #region agent log
-          const prismaUpdateLog = JSON.stringify({location:'lib/actions/user.ts:savePhoneAfterSignUp:prismaUpdate',message:'Updating Prisma user phone',data:{userId,prismaUserId:prismaUser.id,phoneBefore:prismaUser.phone||'none',phoneAfter:phoneTrimmed,attempt:i+1},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'});
-          await fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:prismaUpdateLog}).catch(()=>{});
-          // #endregion
-          // User exists, update phone
+      if (prismaUser) {
+        const phoneBefore = prismaUser.phone || "";
+        if (phoneBefore !== phoneTrimmed) {
           await prisma.user.update({
             where: { id: prismaUser.id },
             data: { phone: phoneTrimmed },
           });
           const elapsed = Date.now() - startTime;
-          // #region agent log
-          const prismaSuccessLog = JSON.stringify({location:'lib/actions/user.ts:savePhoneAfterSignUp:prismaSuccess',message:'Prisma update successful',data:{userId,prismaUserId:prismaUser.id,phone:phoneTrimmed,attempt:i+1,elapsed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'});
-          await fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:prismaSuccessLog}).catch(()=>{});
-          // #endregion
-          logger.info(`[savePhoneAfterSignUp] ✓✓✓ SUCCESS: Updated Prisma user ${prismaUser.id} with phone: ${phoneTrimmed} (attempt ${i + 1}, ${elapsed}ms)`);
-          return { 
-            success: true,
-            details: `Phone saved to Prisma after ${i + 1} attempts in ${elapsed}ms`
-          };
+          logger.info(`[savePhoneAfterSignUp] ✓ Updated Prisma user ${prismaUser.id} with phone: ${phoneTrimmed} (${elapsed}ms)`);
+          return { success: true, details: `Phone saved to Prisma in ${elapsed}ms` };
         }
-        
-        // #region agent log
-        const prismaNotFoundLog = JSON.stringify({location:'lib/actions/user.ts:savePhoneAfterSignUp:prismaNotFound',message:'Prisma user not found yet',data:{userId,attempt:i+1},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
-        await fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:prismaNotFoundLog}).catch(()=>{});
-        // #endregion
-
-        // If user doesn't exist yet, wait and retry (webhook might still be processing)
-        if (i < maxRetries - 1) {
-          // Exponential backoff: starts at 200ms, max 2000ms
-          const delay = Math.min(200 * Math.pow(1.5, i), 2000);
-          logger.info(`[savePhoneAfterSignUp] User not found yet, waiting ${delay}ms before retry ${i + 2}/${maxRetries}`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      } catch (error: any) {
-        logger.warn(`[savePhoneAfterSignUp] Error on attempt ${i + 1}:`, error?.message || error);
-        if (i < maxRetries - 1) {
-          const delay = Math.min(200 * Math.pow(1.5, i), 2000);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+        const elapsed = Date.now() - startTime;
+        logger.info(`[savePhoneAfterSignUp] Phone unchanged for user ${prismaUser.id}; already ${phoneTrimmed} (${elapsed}ms)`);
+        return { success: true, details: `Phone already present in Prisma (${elapsed}ms)` };
       }
-    }
 
-    // If we get here, user wasn't created yet after all retries
-    // But metadata is updated, so webhook will sync it
-    const elapsed = Date.now() - startTime;
-    logger.warn(`[savePhoneAfterSignUp] Prisma user not found after ${maxRetries} attempts (${elapsed}ms), but metadata is ${metadataUpdated ? 'updated' : 'NOT updated'}. Webhook will sync.`);
-    return { 
-      success: metadataUpdated, // Success if metadata was updated
-      details: metadataUpdated 
-        ? `Metadata updated, Prisma sync pending (webhook will handle)`
-        : `Failed to update both metadata and Prisma after ${maxRetries} attempts`
-    };
+      // If user not yet created (webhook race), trigger sync once and return fast
+      await getOrCreateUserFromClerk(userId);
+      logger.info(`[savePhoneAfterSignUp] Prisma user not found yet; triggered sync and returning (metadata updated=${metadataUpdated})`);
+      return { success: metadataUpdated, details: metadataUpdated ? "Metadata stored; Prisma sync via webhook" : "Prisma sync pending" };
+    } catch (error: any) {
+      logger.warn(`[savePhoneAfterSignUp] Fast Prisma sync failed:`, error?.message || error);
+      return { success: metadataUpdated, details: metadataUpdated ? "Metadata stored; webhook will sync" : "Phone save incomplete" };
+    }
   } catch (error: any) {
     const elapsed = Date.now() - startTime;
     logger.error(`[savePhoneAfterSignUp] CRITICAL ERROR after ${elapsed}ms:`, error);
@@ -363,6 +330,60 @@ export async function updateUserPhone(phone: string): Promise<{ success?: boolea
     logger.error("Failed to update user phone:", error);
     return {
       error: error?.message || "Failed to update phone number",
+    };
+  }
+}
+
+/**
+ * Permanently delete the current user's account from Clerk and Prisma
+ */
+export async function deleteAccount(): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return {
+        error: "You must be logged in to delete your account",
+      };
+    }
+
+    if (!prisma) {
+      return {
+        error: "Database not available",
+      };
+    }
+
+    // Remove Clerk user first so the account can't be recreated mid-request
+    try {
+      await deleteClerkUser(userId);
+      logger.info(`[deleteAccount] Deleted Clerk user ${userId}`);
+    } catch (clerkError) {
+      logger.error(`[deleteAccount] Failed to delete Clerk user ${userId}:`, clerkError as Error);
+      return {
+        error: "Could not delete your account right now. Please try again.",
+      };
+    }
+
+    // Clean up Prisma user data (appointments cascade via relations)
+    try {
+      const deleteResult = await prisma.user.deleteMany({
+        where: { clerkUserId: userId },
+      });
+      logger.info(`[deleteAccount] Deleted ${deleteResult.count} Prisma user record(s) for Clerk user ${userId}`);
+    } catch (dbError) {
+      logger.error(`[deleteAccount] Clerk account removed but Prisma cleanup failed for ${userId}:`, dbError as Error);
+      return {
+        error: "Your sign-in was removed but we could not clean up your data. Please contact support.",
+      };
+    }
+
+    revalidatePath("/account");
+
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to delete account:", error as Error);
+    return {
+      error: "Failed to delete account. Please try again.",
     };
   }
 }

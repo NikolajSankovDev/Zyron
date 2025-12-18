@@ -11,6 +11,67 @@ import { logger } from "@/lib/logger";
 import { formatClerkUser, getClerkUser } from "@/lib/clerk";
 import type { UserRole } from "@prisma/client";
 
+// Normalize role strings coming from Clerk metadata
+function normalizeRole(role: any): UserRole | null {
+  if (!role || typeof role !== "string") return null;
+  const upper = role.toUpperCase();
+  if (upper === "ADMIN" || upper === "BARBER" || upper === "CUSTOMER") {
+    return upper as UserRole;
+  }
+  return null;
+}
+
+// Allow granting admin via environment variable (comma/space/semicolon separated)
+const adminEmailsFromEnv = (() => {
+  const raw =
+    [
+      process.env.ADMIN_EMAILS,
+      process.env.ADMIN_EMAIL,
+      process.env.NEXT_PUBLIC_ADMIN_EMAILS,
+    ]
+      .filter(Boolean)
+      .join(",") || "";
+
+  return raw
+    .split(/[,;\s]+/)
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+})();
+
+function getRoleFromEmail(email: string | null | undefined): UserRole | null {
+  if (!email) return null;
+  const normalized = email.trim().toLowerCase();
+  return adminEmailsFromEnv.includes(normalized) ? "ADMIN" : null;
+}
+
+function resolveRole(options: {
+  metadataRole: UserRole | null;
+  emailRole: UserRole | null;
+  existingRole?: UserRole | null;
+}): UserRole {
+  const { metadataRole, emailRole, existingRole } = options;
+  return metadataRole ?? emailRole ?? existingRole ?? "CUSTOMER";
+}
+
+// Safely fetch Clerk user; return null (instead of throwing) when the user no longer exists
+async function fetchClerkUserSafe(clerkUserId: string) {
+  try {
+    return await getClerkUser(clerkUserId);
+  } catch (error: any) {
+    const status = error?.status;
+    const code = error?.errors?.[0]?.code;
+    const message = error?.message || "";
+    const notFound = status === 404 || code === "resource_not_found" || message.includes("Not Found");
+
+    if (notFound) {
+      logger.info(`[getOrCreateUserFromClerk] Clerk user ${clerkUserId} not found; returning null`);
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 /**
  * Get or create a Prisma User from Clerk user data
  * 
@@ -46,8 +107,26 @@ export async function getOrCreateUserFromClerk(
 
     if (user) {
       // User exists, sync data from Clerk including phone number
-      const clerkUser = await getClerkUser(clerkUserId);
+      const clerkUser = await fetchClerkUserSafe(clerkUserId);
+      
+      if (!clerkUser) {
+        logger.info(`[getOrCreateUserFromClerk] Clerk user ${clerkUserId} missing; skip sync and return null`);
+        return null;
+      }
+
       const formattedUser = formatClerkUser(clerkUser);
+      const roleFromMetadata = normalizeRole(
+        (clerkUser.publicMetadata || clerkUser.public_metadata || {})?.role
+      );
+      const roleFromEmail = getRoleFromEmail(formattedUser.email);
+      const resolvedRole = resolveRole({
+        metadataRole: roleFromMetadata,
+        emailRole: roleFromEmail,
+        existingRole: user.role,
+      });
+      logger.info(
+        `[getOrCreateUserFromClerk] Role resolution for ${formattedUser.email}: metadata=${roleFromMetadata || 'none'}, emailRole=${roleFromEmail || 'none'}, existing=${user.role}, resolved=${resolvedRole}`
+      );
       
       // #region agent log
       const clerkDataLog = JSON.stringify({location:'lib/clerk-user-sync.ts:getOrCreateUserFromClerk:clerkData',message:'Clerk user data extracted',data:{clerkUserId,phoneFromFormatted:formattedUser.phone||'none',emailFromFormatted:formattedUser.email||'none'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,C,D'});
@@ -102,7 +181,7 @@ export async function getOrCreateUserFromClerk(
                   ? `${formattedUser.firstName} ${formattedUser.lastName}`.trim()
                   : formattedUser.email),
           phone: finalPhone,
-          role: (formattedUser.role as UserRole) || user.role,
+          role: resolvedRole,
           updatedAt: new Date(),
         },
       });
@@ -119,8 +198,18 @@ export async function getOrCreateUserFromClerk(
     logger.info(`User not found for Clerk ID ${clerkUserId}, creating new user...`);
     
     // User doesn't exist by clerkUserId, fetch from Clerk
-    const clerkUser = await getClerkUser(clerkUserId);
+    const clerkUser = await fetchClerkUserSafe(clerkUserId);
+
+    if (!clerkUser) {
+      logger.info(`[getOrCreateUserFromClerk] Clerk user ${clerkUserId} missing; returning null without creating Prisma user`);
+      return null;
+    }
+
     const formattedUser = formatClerkUser(clerkUser);
+    const roleFromMetadata = normalizeRole(
+      (clerkUser.publicMetadata || clerkUser.public_metadata || {})?.role
+    );
+    const roleFromEmail = getRoleFromEmail(formattedUser.email);
     
     // #region agent log
     const createClerkDataLog = JSON.stringify({location:'lib/clerk-user-sync.ts:getOrCreateUserFromClerk:createClerkData',message:'Clerk data for new user',data:{clerkUserId,phoneFromFormatted:formattedUser.phone||'none',emailFromFormatted:formattedUser.email||'none'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'});
@@ -131,6 +220,14 @@ export async function getOrCreateUserFromClerk(
     const existingUserByEmail = await prisma.user.findUnique({
       where: { email: formattedUser.email },
     });
+    const resolvedRole = resolveRole({
+      metadataRole: roleFromMetadata,
+      emailRole: roleFromEmail,
+      existingRole: existingUserByEmail?.role,
+    });
+    logger.info(
+      `[getOrCreateUserFromClerk] Role resolution for ${formattedUser.email}: metadata=${roleFromMetadata || 'none'}, emailRole=${roleFromEmail || 'none'}, existing=${existingUserByEmail?.role || 'none'}, resolved=${resolvedRole}`
+    );
 
     // Extract name from Clerk (firstName + lastName or fullName)
     const name = formattedUser.fullName || 
@@ -152,9 +249,6 @@ export async function getOrCreateUserFromClerk(
 
     logger.info(`[getOrCreateUserFromClerk] Creating/updating user for Clerk ID ${clerkUserId}, email: ${formattedUser.email}, phone from Clerk: ${phoneFromClerk || 'empty'}`);
 
-    // Get role from Clerk metadata or default to CUSTOMER
-    const role = (formattedUser.role as UserRole) || "CUSTOMER";
-
     if (existingUserByEmail) {
       // User exists by email but doesn't have clerkUserId set - update it
       logger.info(`[getOrCreateUserFromClerk] Found existing user by email ${formattedUser.email}, updating clerkUserId`);
@@ -174,7 +268,7 @@ export async function getOrCreateUserFromClerk(
           email: formattedUser.email,
           name: name,
           phone: preservedPhone,
-          role: role,
+          role: resolvedRole,
           updatedAt: new Date(),
         },
       });
@@ -192,7 +286,7 @@ export async function getOrCreateUserFromClerk(
             email: formattedUser.email,
             name: name,
             phone: phoneFromClerk,
-            role: role,
+            role: resolvedRole,
           },
         });
         
@@ -278,4 +372,3 @@ export async function getCurrentPrismaUser() {
     return null;
   }
 }
-

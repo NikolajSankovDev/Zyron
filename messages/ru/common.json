@@ -118,7 +118,11 @@
     "errorOccurred": "Произошла ошибка. Пожалуйста, попробуйте снова.",
     "enterCodeSentToEmail": "Введите код, отправленный на вашу электронную почту",
     "verificationCode": "Код подтверждения",
-    "verifyCode": "Подтвердить код"
+    "verifyCode": "Подтвердить код",
+    "alreadyLoggedInTitle": "Вы уже вошли",
+    "alreadyLoggedInDescription": "Используйте текущую сессию или выйдите, чтобы сменить аккаунт.",
+    "goHome": "На главную",
+    "logout": "Выйти"
   },
   "home": {
     "title": "Zyron Barber Studio",
@@ -311,7 +315,15 @@
     "minutes": "минут",
     "hour": "час",
     "hours": "часов",
-    "minute": "минута"
+    "minute": "минута",
+    "deleteAccountTitle": "Удалить аккаунт",
+    "deleteAccountDescription": "Навсегда удалить профиль, записи и доступ к входу.",
+    "deleteAccountWarning": "Это действие необратимо. Мы удалим {email} и всю историю записей.",
+    "deleteAccountButton": "Удалить аккаунт",
+    "deleteAccountConfirmTitle": "Вы уверены, что хотите удалить аккаунт?",
+    "deleteAccountConfirmBody": "Ваш профиль, записи и сохраненные данные будут безвозвратно удалены.",
+    "deleteAccountConfirmAction": "Удалить мой аккаунт",
+    "deleteAccountProcessing": "Удаление...",
+    "deleteAccountBack": "Назад"
   }
 }
-
