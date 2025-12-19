@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useEffect, useRef } from "react";
+import { useMemo, useCallback, useEffect, useRef, type CSSProperties } from "react";
 import { Calendar, dateFnsLocalizer, SlotInfo, View, Views } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek as dateFnsStartOfWeek, getDay, setHours, setMinutes, startOfDay } from "date-fns";
@@ -8,8 +8,10 @@ import { de, enUS, ru } from "date-fns/locale";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import type { AppointmentDisplayData, BarberDisplayData } from "@/lib/types/admin-calendar";
+import { getIntervalHeight } from "@/lib/utils/calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+import "./admin-calendar.css";
 
 // Create drag and drop enabled calendar
 const DragAndDropCalendar = withDragAndDrop(Calendar);
@@ -56,6 +58,7 @@ interface AdminCalendarProps {
   };
   viewMode?: "day" | "week" | "month";
   timeInterval?: 15 | 30 | 60;
+  intervalHeight?: "small" | "medium" | "large";
   onViewChange?: (view: "day" | "week" | "month") => void;
   onDateChange?: (date: Date) => void;
 }
@@ -81,6 +84,7 @@ export function AdminCalendar({
   timeRange = { start: "09:00", end: "20:00" },
   viewMode = "day",
   timeInterval = 15,
+  intervalHeight = "medium",
   onViewChange,
   onDateChange,
 }: AdminCalendarProps) {
@@ -121,31 +125,24 @@ export function AdminCalendar({
       : null;
 
     return (
-      <div className="rbc-custom-barber-header flex flex-col items-center gap-1.5 py-3 px-2 text-center">
-        <div className="relative h-12 w-12">
+      <div className="rbc-barber-header">
+        <div className="rbc-barber-avatar" aria-hidden>
           {barber?.avatar ? (
             <Image
               src={barber.avatar}
               alt={displayName}
-              width={48}
-              height={48}
-              className="h-12 w-12 rounded-full object-cover shadow-sm ring-2 ring-white"
+              width={32}
+              height={32}
+              className="rbc-barber-avatar__img"
             />
           ) : (
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 font-semibold flex items-center justify-center uppercase shadow-inner ring-2 ring-white">
-              {initials}
-            </div>
+            <div className="rbc-barber-avatar__fallback">{initials}</div>
           )}
-          <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/5" />
         </div>
-        <div className="text-sm font-semibold text-gray-900 leading-tight">
-          {displayName}
+        <div className="rbc-barber-meta">
+          <div className="rbc-barber-name">{displayName}</div>
+          {workingHours && <div className="rbc-barber-hours">{workingHours}</div>}
         </div>
-        {workingHours && (
-          <div className="text-[11px] font-medium text-gray-500 tracking-wide">
-            {workingHours}
-          </div>
-        )}
       </div>
     );
   }, []);
@@ -168,6 +165,13 @@ export function AdminCalendar({
       ? appointment.services[0].serviceName
       : "Service";
 
+    const statusLabel = appointment.status
+      ? appointment.status
+          .replace(/_/g, " ")
+          .toLowerCase()
+          .replace(/(^|\s)\w/g, (c) => c.toUpperCase())
+      : "";
+
     // Determine status
     const isCompleted = appointment.status === "COMPLETED";
     const isMissed = appointment.status === "MISSED";
@@ -181,8 +185,11 @@ export function AdminCalendar({
 
     return (
       <div className={`rbc-event-card ${statusClass}`}>
-        <div className="rbc-event-time">
-          {displayStartTime} - {displayEndTime}
+        <div className="rbc-event-card__meta">
+          <span className="rbc-event-time">
+            {displayStartTime} - {displayEndTime}
+          </span>
+          {statusLabel && <span className="rbc-event-status" aria-label="Appointment status">{statusLabel}</span>}
         </div>
         <div className="rbc-event-customer">
           {appointment.customerName}
@@ -262,6 +269,8 @@ export function AdminCalendar({
   
   const [startHour, startMinute] = effectiveTimeRange.start.split(":").map(Number);
   const [endHour, endMinute] = effectiveTimeRange.end.split(":").map(Number);
+  const workingStartMinutes = startHour * 60 + startMinute;
+  const workingEndMinutes = endHour * 60 + endMinute;
   
   // Calculate min/max time for calendar display
   const minTime = useMemo(() => {
@@ -307,6 +316,17 @@ export function AdminCalendar({
     const timeout = setTimeout(scrollToStart, 100);
     return () => clearTimeout(timeout);
   }, [date, viewMode]);
+
+  const slotPropGetter = useCallback(
+    (slotDate: Date) => {
+      const minutes = slotDate.getHours() * 60 + slotDate.getMinutes();
+      const isWorkingHour = minutes >= workingStartMinutes && minutes < workingEndMinutes;
+      return {
+        className: isWorkingHour ? "rbc-slot-working" : "rbc-slot-off-hours",
+      };
+    },
+    [workingStartMinutes, workingEndMinutes],
+  );
 
   // Handle event click
   const handleSelectEvent = useCallback((event: any) => {
@@ -367,11 +387,24 @@ export function AdminCalendar({
 
   const dateFnsLocale = locales[locale as keyof typeof locales] || locales.de;
   const step = timeInterval;
+  const slotsPerHour = 60 / step;
+  const timeslots = Number.isInteger(slotsPerHour) ? slotsPerHour : 1;
+  const slotHeightPx = getIntervalHeight(intervalHeight);
+
+  // Keep slot sizing and header height in sync via CSS vars (visual only)
+  const calendarStyle = useMemo(() => {
+    return {
+      ["--rbc-slot-height" as string]: `${slotHeightPx}px`,
+      ["--rbc-resource-header-height" as string]: "52px",
+      ["--rbc-timeslots-per-hour" as string]: String(timeslots),
+    } satisfies CSSProperties;
+  }, [slotHeightPx, timeslots]);
 
   return (
     <div
       ref={calendarRef}
-      className="rbc-calendar-wrapper w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden"
+      className="rbc-calendar-wrapper w-full h-full"
+      style={calendarStyle}
     >
       {/* @ts-expect-error - react-big-calendar supports string accessors but types expect functions */}
       <DragAndDropCalendar
@@ -393,7 +426,7 @@ export function AdminCalendar({
         max={maxTime}
         scrollToTime={scrollToTime}
         step={step}
-        timeslots={1}
+        timeslots={timeslots}
         onSelectEvent={handleSelectEvent}
         onSelectSlot={handleSelectSlot}
         onEventDrop={handleEventDrop}
@@ -411,6 +444,7 @@ export function AdminCalendar({
         tooltipAccessor={() => ""}
         culture={locale}
         toolbar={false}
+        slotPropGetter={slotPropGetter}
         formats={{
           dayFormat: (date: Date) => format(date, "EEE d", { locale: dateFnsLocale }),
           dayHeaderFormat: (date: Date) => {
