@@ -98,9 +98,12 @@ export function AdminCalendar({
     return barbers.filter((barber) => selectedBarberIds.includes(barber.id));
   }, [barbers, selectedBarberIds]);
 
-  // Transform barbers to resources (only for day view with resources)
+  // Transform barbers to resources
+  // Day view: show all selected barbers as columns
+  // Week view: no resources (shows days across the week for a single barber)
   const resources = useMemo(() => {
     if (viewMode !== "day") return undefined;
+
     return visibleBarbers.map((barber) => ({
       id: String(barber.id),
       title: barber.displayName,
@@ -108,7 +111,7 @@ export function AdminCalendar({
     }));
   }, [visibleBarbers, viewMode]);
 
-  // Simple Resource header - just show title (barber name)
+  // Resource header - modern glass design with larger avatars
   const ResourceHeader = useCallback(({ resource }: { resource: any }) => {
     const barber = resource.barber as BarberDisplayData | undefined;
     const displayName = barber?.displayName || resource.title;
@@ -125,29 +128,46 @@ export function AdminCalendar({
       : null;
 
     return (
-      <div className="rbc-barber-header">
-        <div className="rbc-barber-avatar" aria-hidden>
-          {barber?.avatar ? (
-            <Image
-              src={barber.avatar}
-              alt={displayName}
-              width={32}
-              height={32}
-              className="rbc-barber-avatar__img"
-            />
-          ) : (
-            <div className="rbc-barber-avatar__fallback">{initials}</div>
-          )}
+      <div className="group relative flex items-center gap-4 px-6 py-4 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-all duration-300">
+        <div className="relative">
+          {/* Avatar with blue ring */}
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-0.5 ring-2 ring-blue-200 group-hover:ring-blue-400 transition-all duration-300">
+            {barber?.avatar ? (
+              <Image
+                src={barber.avatar}
+                alt={displayName}
+                width={48}
+                height={48}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 text-sm font-bold text-gray-900">
+                {initials}
+              </div>
+            )}
+          </div>
+          {/* Online status indicator */}
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-md" />
         </div>
-        <div className="rbc-barber-meta">
-          <div className="rbc-barber-name">{displayName}</div>
-          {workingHours && <div className="rbc-barber-hours">{workingHours}</div>}
+
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-semibold text-gray-900 tracking-tight truncate">
+            {displayName}
+          </h3>
+          {workingHours && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-xs font-medium text-gray-900">
+                {workingHours}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
   }, []);
 
-  // Event component - renders appointment cards
+  // Event component - modern glass card with neo-brutalist borders
   const EventComponent = useCallback(({ event }: { event: any }) => {
     const appointment = event.appointment as AppointmentDisplayData | undefined;
     if (!appointment) {
@@ -156,7 +176,7 @@ export function AdminCalendar({
 
     const start = event.start instanceof Date ? event.start : new Date(event.start);
     const end = event.end instanceof Date ? event.end : new Date(event.end);
-    
+
     const displayStartTime = format(start, "HH:mm");
     const displayEndTime = format(end, "HH:mm");
 
@@ -165,37 +185,48 @@ export function AdminCalendar({
       ? appointment.services[0].serviceName
       : "Service";
 
-    const statusLabel = appointment.status
-      ? appointment.status
-          .replace(/_/g, " ")
-          .toLowerCase()
-          .replace(/(^|\s)\w/g, (c) => c.toUpperCase())
-      : "";
-
-    // Determine status
-    const isCompleted = appointment.status === "COMPLETED";
-    const isMissed = appointment.status === "MISSED";
-    const isCanceled = appointment.status === "CANCELED";
-
-    // Determine status class
-    let statusClass = "status-booked";
-    if (isCompleted) statusClass = "status-completed";
-    else if (isMissed) statusClass = "status-missed";
-    else if (isCanceled) statusClass = "status-canceled";
+    // Status color mapping - blue theme
+    const statusColors = {
+      BOOKED: "rgba(0, 113, 227, 0.6)",
+      ARRIVED: "rgba(52, 199, 89, 0.6)",
+      COMPLETED: "rgba(48, 209, 88, 0.6)",
+      MISSED: "rgba(255, 59, 48, 0.6)",
+      CANCELED: "rgba(142, 142, 147, 0.6)",
+    };
+    const eventColor = statusColors[appointment.status] || statusColors.BOOKED;
 
     return (
-      <div className={`rbc-event-card ${statusClass}`}>
-        <div className="rbc-event-card__meta">
-          <span className="rbc-event-time">
-            {displayStartTime} - {displayEndTime}
-          </span>
-          {statusLabel && <span className="rbc-event-status" aria-label="Appointment status">{statusLabel}</span>}
-        </div>
-        <div className="rbc-event-customer">
-          {appointment.customerName}
-        </div>
-        <div className="rbc-event-service-name">
-          {serviceName}
+      <div
+        className="rbc-event-card"
+        style={{
+          ["--event-color" as string]: eventColor
+        }}
+      >
+        {/* Status indicator - top right corner */}
+        <div className="rbc-event-status-badge" />
+
+        {/* Content */}
+        <div className="rbc-event-card-content">
+          {/* Time with icon */}
+          <div className="rbc-event-time">
+            <svg className="w-3.5 h-3.5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+              <path d="M12 6v6l4 2" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span>
+              {displayStartTime} - {displayEndTime}
+            </span>
+          </div>
+
+          {/* Customer name */}
+          <h4 className="rbc-event-customer">
+            {appointment.customerName}
+          </h4>
+
+          {/* Service */}
+          <p className="rbc-event-service">
+            {serviceName}
+          </p>
         </div>
       </div>
     );
@@ -203,13 +234,29 @@ export function AdminCalendar({
 
   // Transform appointments to events
   const events = useMemo(() => {
+    // For week view without resources, show all appointments
+    if (!resources && viewMode === "week") {
+      return appointments.map((apt) => {
+        const start = apt.startTime instanceof Date ? apt.startTime : new Date(apt.startTime);
+        const end = apt.endTime instanceof Date ? apt.endTime : new Date(apt.endTime);
+
+        return {
+          id: apt.id,
+          title: apt.customerName || "",
+          start,
+          end,
+          appointment: apt,
+        };
+      }).filter((event) => !isNaN(event.start.getTime()) && !isNaN(event.end.getTime()));
+    }
+
     if (!resources) return [];
-    
+
     const validResourceIds = new Set<string>();
     resources.forEach((resource) => {
       validResourceIds.add(String(resource.id));
     });
-    
+
     return appointments
       .filter((apt) => {
         const aptBarberIdStr = String(apt.barberId);
@@ -218,7 +265,7 @@ export function AdminCalendar({
       .map((apt) => {
         const start = apt.startTime instanceof Date ? apt.startTime : new Date(apt.startTime);
         const end = apt.endTime instanceof Date ? apt.endTime : new Date(apt.endTime);
-        
+
         return {
           id: apt.id,
           title: apt.customerName || "",
@@ -234,7 +281,7 @@ export function AdminCalendar({
         }
         return validResourceIds.has(event.resourceId);
       });
-  }, [appointments, resources]);
+  }, [appointments, resources, viewMode]);
 
   // Calculate time range from visible barbers' working hours
   const weekday = date.getDay();
@@ -377,9 +424,9 @@ export function AdminCalendar({
 
   if (visibleBarbers.length === 0) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-900">
+      <div className="w-full h-full flex items-center justify-center bg-white rounded-xl border border-gray-200">
         <div className="text-center p-12">
-          <p className="text-gray-400 text-lg font-medium">No barbers selected</p>
+          <p className="text-gray-900 text-lg font-medium">No barbers selected</p>
         </div>
       </div>
     );
@@ -403,22 +450,26 @@ export function AdminCalendar({
   return (
     <div
       ref={calendarRef}
-      className="rbc-calendar-wrapper w-full h-full"
+      className="admin-calendar relative w-full h-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden"
       style={calendarStyle}
     >
       {/* @ts-expect-error - react-big-calendar supports string accessors but types expect functions */}
       <DragAndDropCalendar
         localizer={localizer}
         events={events}
-        resources={resources}
-        resourceIdAccessor="id"
-        resourceTitleAccessor="title"
-        resourceAccessor="resourceId"
+        {...(viewMode === "day" && resources
+          ? {
+              resources,
+              resourceIdAccessor: "id",
+              resourceTitleAccessor: "title",
+              resourceAccessor: "resourceId",
+            }
+          : {})}
         startAccessor="start"
         endAccessor="end"
         titleAccessor="title"
-        defaultView={viewMode === "day" ? Views.DAY : viewMap[viewMode]}
-        view={viewMode === "day" ? Views.DAY : viewMap[viewMode]}
+        defaultView={viewMode === "day" ? Views.DAY : Views.WEEK}
+        view={viewMode === "day" ? Views.DAY : Views.WEEK}
         views={[Views.DAY, Views.WEEK]}
         defaultDate={date}
         date={date}

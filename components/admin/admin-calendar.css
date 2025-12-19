@@ -1,449 +1,498 @@
-.rbc-calendar-wrapper {
-  --rbc-slot-height: 40px;
-  --rbc-resource-header-height: 48px;
-  --rbc-slot-line-color: rgba(226, 232, 240, 0.9);
-  background: #f7f9fc;
-  border-radius: 28px;
-  border: 1px solid #e4e7ec;
-  padding: 20px;
+/* ========================================
+   ADMIN CALENDAR - LIGHT & CLEAN DESIGN
+   2025 Design: White background, light grey, blue accents
+   ======================================== */
+
+/* Design Tokens */
+.admin-calendar {
+  /* Light color palette */
+  --bg-white: #ffffff;
+  --bg-light-grey: #f5f5f7;
+  --border-light: #e5e5e7;
+  --text-primary: #1d1d1f;
+  --text-secondary: #374151;
+  --blue-accent: #0071e3;
+  --blue-light: #e8f4fd;
+  --blue-hover: #0077ed;
+
+  /* Glass effects for light theme */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-blur: 12px;
+
+  /* Elevation shadows for light theme */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(0, 113, 227, 0.15);
+
+  /* Status colors with light theme */
+  --status-booked-bg: rgba(0, 113, 227, 0.08);
+  --status-booked-border: rgba(0, 113, 227, 0.6);
+  --status-arrived-bg: rgba(52, 199, 89, 0.08);
+  --status-arrived-border: rgba(52, 199, 89, 0.6);
+  --status-completed-bg: rgba(48, 209, 88, 0.08);
+  --status-completed-border: rgba(48, 209, 88, 0.6);
+  --status-missed-bg: rgba(255, 59, 48, 0.08);
+  --status-missed-border: rgba(255, 59, 48, 0.6);
+  --status-canceled-bg: rgba(142, 142, 147, 0.08);
+  --status-canceled-border: rgba(142, 142, 147, 0.6);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   CALENDAR STRUCTURE
+   ======================================== */
+
+/* Reset RBC base styles */
+.rbc-calendar {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  font-family: inherit;
 }
 
-.rbc-calendar-wrapper .rbc-time-view,
-.rbc-calendar-wrapper .rbc-time-view * {
-  box-sizing: border-box;
-}
-
-.rbc-calendar-wrapper .rbc-calendar {
-  flex: 1 1 auto;
-  display: flex !important;
+.rbc-time-view {
+  display: flex;
   flex-direction: column;
-  height: 100% !important;
-  border-radius: 22px;
-  background: #fff !important;
-  border: 1px solid #edf0f5;
-  overflow: hidden;
-}
-
-.rbc-time-view,
-.rbc-day-view {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-}
-
-.rbc-time-header,
-.rbc-time-header-content {
-  background: #fff !important;
-  border: none !important;
+  flex: 1;
+  min-height: 0;
+  border: none;
 }
 
 .rbc-time-header {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  flex: 0 0 auto;
-  min-height: var(--rbc-resource-header-height);
-  border-bottom: 1px solid #e3e8f1;
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
-}
-
-.rbc-time-header-content {
-  padding: 8px 12px 6px 12px !important;
-  border-bottom: none !important;
-}
-
-.rbc-time-header-content > .rbc-row,
-.rbc-time-header-content > .rbc-row * {
-  border: 0 !important;
-}
-
-.rbc-time-header-content > .rbc-row,
-.rbc-time-header-content .rbc-row-resource {
-  gap: 0;
-  margin: 0;
-  min-height: 0;
-  align-items: stretch;
-}
-
-.rbc-time-header-content .rbc-row-resource {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0;
-  min-height: var(--rbc-resource-header-height);
-  align-items: center;
-}
-
-.rbc-time-header > .rbc-row:first-child,
-.rbc-time-header > .rbc-row.rbc-row-resource {
-  border-bottom: 0 !important;
-}
-
-.rbc-time-view-resources .rbc-time-header-content > .rbc-row:not(.rbc-row-resource),
-.rbc-time-view-resources .rbc-time-header-content .rbc-allday-cell,
-.rbc-time-view-resources .rbc-time-header-content .rbc-allday-events {
-  display: none !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 0 !important;
-  overflow: hidden !important;
-}
-
-.rbc-time-header-cell,
-.rbc-time-header-cell .rbc-header {
-  border: none !important;
-  background: transparent !important;
-}
-
-.rbc-time-header-cell + .rbc-time-header-cell .rbc-header {
-  position: relative;
-}
-
-.rbc-time-header-cell + .rbc-time-header-cell .rbc-header::before {
-  content: "";
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 0;
-  width: 1px;
-  background: var(--rbc-slot-line-color);
-}
-
-.rbc-header {
-  text-transform: none !important;
-  font-weight: 600;
-  color: #0f172a;
-  font-size: 12px;
-  padding: 0 6px !important;
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.rbc-time-gutter,
-.rbc-time-header-gutter {
-  width: 86px !important;
-  min-width: 86px !important;
-  max-width: 86px !important;
-  border: none !important;
-  background: #f8fafc !important;
-  padding: 0 10px 0 14px !important;
-  position: sticky;
-  left: 0;
-  z-index: 4;
-  overflow: visible;
-  min-height: var(--rbc-resource-header-height);
-}
-
-.rbc-time-header-gutter {
-  border-right: none !important;
-}
-
-.rbc-time-gutter {
-  border-right: none !important;
-  box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.05);
-  border-bottom-left-radius: 22px;
+  flex: 0 0 auto;
+  flex-direction: column;
 }
 
 .rbc-time-content {
   display: flex;
-  gap: 0;
-  background: #fff;
-  padding: 0 16px;
-  border-top: none !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  border-bottom-left-radius: 22px;
-  border-bottom-right-radius: 22px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   position: relative;
-  z-index: 1;
-}
-
-.rbc-time-content > .rbc-time-column:not(.rbc-time-gutter) {
-  padding: 0 12px;
-  border: none !important;
-  background: #fff;
-  position: relative;
-}
-
-.rbc-time-content > .rbc-time-column:not(.rbc-time-gutter) + .rbc-time-column:not(.rbc-time-gutter)::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  background: rgba(226, 232, 240, 0.7);
-}
-
-.rbc-day-slot {
-  position: relative;
-  overflow: visible !important;
-}
-
-.rbc-day-slot .rbc-timeslot-group,
-.rbc-time-gutter .rbc-timeslot-group {
-  border: none !important;
-  margin: 0;
-  padding: 0;
-  position: relative;
-  min-height: calc(var(--rbc-slot-height) * var(--rbc-timeslots-per-hour, 1));
-}
-
-.rbc-day-slot .rbc-time-slot {
-  border: none !important;
-  min-height: var(--rbc-slot-height);
-  height: var(--rbc-slot-height);
-  flex: 0 0 var(--rbc-slot-height);
-  transition: background 0.2s ease;
-  background: transparent;
-  position: relative;
-}
-
-.rbc-day-slot .rbc-time-slot::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--rbc-slot-line-color);
-  pointer-events: none;
-}
-
-.rbc-day-slot .rbc-time-slot:first-child::after {
-  background: transparent;
-}
-
-.rbc-day-slot .rbc-time-slot:hover {
-  background: rgba(59, 130, 246, 0.08);
-}
-
-.rbc-day-slot .rbc-slot-off-hours {
-  background: rgba(148, 163, 184, 0.15) !important;
-}
-
-.rbc-time-gutter .rbc-time-slot {
   border: none;
-  min-height: var(--rbc-slot-height);
-  height: var(--rbc-slot-height);
-  flex: 0 0 var(--rbc-slot-height);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 6px;
 }
 
-.rbc-time-gutter .rbc-time-slot::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--rbc-slot-line-color);
+/* Remove all default RBC borders and backgrounds */
+.rbc-header,
+.rbc-time-header-content,
+.rbc-allday-cell,
+.rbc-day-bg,
+.rbc-time-column {
+  border: none !important;
+  background: transparent !important;
 }
 
-.rbc-time-gutter .rbc-time-slot:first-child::after {
-  background: transparent;
+/* ========================================
+   TIME GUTTER (Left Timeline)
+   ======================================== */
+
+.rbc-time-gutter,
+.rbc-time-header-gutter {
+  @apply sticky left-0 z-10 w-20 min-w-20 bg-white/95 backdrop-blur-sm border-r;
+  border-color: var(--border-light);
 }
 
 .rbc-time-gutter .rbc-label {
-  position: static;
-  transform: none;
-  font-size: 12px !important;
-  font-weight: 600;
-  color: #8a93a5 !important;
-  text-align: right;
-  width: 100%;
-  padding-right: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
+  @apply text-sm font-semibold text-center;
+  color: var(--text-secondary);
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
 }
 
-.rbc-barber-header {
-  height: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: transparent;
-  min-height: var(--rbc-resource-header-height);
+.rbc-timeslot-group {
+  min-height: var(--rbc-slot-height);
+  border: none;
 }
 
-.rbc-barber-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: #f6f7fb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-  position: relative;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+/* ========================================
+   RESOURCE HEADERS (Barber Column Headers)
+   ======================================== */
+
+.rbc-time-header {
+  @apply sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b;
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
-.rbc-barber-avatar__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+.rbc-time-header-content {
+  @apply border-none;
 }
 
-.rbc-barber-avatar__fallback {
-  font-size: 11px;
-  font-weight: 600;
-  color: #475467;
+.rbc-header {
+  @apply border-none bg-transparent;
+  padding: 0;
 }
 
-.rbc-barber-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
+/* ========================================
+   TIME SLOTS & GRID
+   ======================================== */
+
+.rbc-time-content > .rbc-time-column {
+  @apply border-none;
+  padding: 0 8px;
 }
 
-.rbc-barber-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.1;
+.rbc-day-slot .rbc-timeslot-group {
+  @apply border-none;
+  min-height: var(--rbc-slot-height);
 }
 
-.rbc-barber-hours {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #8c94a5;
+.rbc-day-slot .rbc-time-slot {
+  @apply relative transition-all duration-200;
+  min-height: var(--rbc-slot-height);
+  border-top: 1px solid var(--border-light);
 }
+
+.rbc-day-slot .rbc-time-slot:hover {
+  background-color: var(--blue-light);
+  box-shadow: inset 0 0 20px rgba(0, 113, 227, 0.08);
+}
+
+/* Working hours - white/transparent */
+.rbc-slot-working {
+  @apply bg-white;
+}
+
+/* Off-hours - light grey pattern */
+.rbc-slot-off-hours {
+  background: repeating-linear-gradient(
+    45deg,
+    #f9f9f9,
+    #f9f9f9 10px,
+    #f5f5f7 10px,
+    #f5f5f7 20px
+  ) !important;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Column dividers */
+.rbc-time-content > .rbc-time-column:not(.rbc-time-gutter) + .rbc-time-column::before {
+  content: "";
+  @apply absolute top-0 bottom-0 left-0 w-px;
+  background-color: var(--border-light);
+}
+
+/* ========================================
+   APPOINTMENT CARDS (Events)
+   ======================================== */
 
 .rbc-event {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  width: 100% !important;
-  left: 0 !important;
-  right: 0 !important;
-  cursor: pointer;
+  margin: 2px 0 !important;
 }
 
 .rbc-event-content {
   height: 100%;
+  padding: 2px 4px;
+  overflow: visible;
 }
 
+.rbc-event-label {
+  display: none;
+}
+
+/* Appointment card base - clean white card with colored border */
 .rbc-event-card {
-  --event-accent: #9dbff9;
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e3e8f2;
-  padding: 10px 14px 10px 16px;
+  position: relative;
+  height: 100%;
+  border-radius: 8px;
+  border: 2px solid;
+  border-color: var(--event-color);
+  background: white;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  contain: layout style paint;
+  will-change: transform, box-shadow;
+}
+
+.rbc-event-card:hover {
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 20px var(--event-color);
+}
+
+/* Subtle gradient overlay on hover */
+.rbc-event-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.02), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.rbc-event-card:hover::before {
+  opacity: 1;
+}
+
+/* Status indicator - corner badge */
+.rbc-event-status-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--event-color);
+  box-shadow: 0 0 8px var(--event-color);
+  z-index: 10;
+}
+
+/* Card content */
+.rbc-event-card-content {
+  position: relative;
+  padding: 12px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 100%;
-  box-shadow: 0 12px 24px -18px rgba(15, 23, 42, 0.35);
-  position: relative;
-  overflow: hidden;
-}
-
-.rbc-event-card::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 999px;
-  background: var(--event-accent);
-}
-
-.rbc-event-card__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: #667085;
-  text-transform: uppercase;
+  z-index: 1;
 }
 
 .rbc-event-time {
-  font-weight: 600;
+  @apply flex items-center gap-2 text-xs font-medium;
+  color: var(--text-secondary);
 }
 
 .rbc-event-customer {
-  font-size: 15px;
-  font-weight: 600;
-  color: #0f172a;
-  line-height: 1.2;
+  @apply text-sm font-semibold truncate;
+  color: var(--text-primary);
 }
 
-.rbc-event-service-name {
-  font-size: 12px;
-  color: #475467;
+.rbc-event-service {
+  @apply text-xs font-medium truncate;
+  color: var(--text-secondary);
 }
 
-.rbc-event-status {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: rgba(99, 102, 241, 0.12);
-  color: #4f46e5;
+/* Focus state for accessibility */
+.rbc-event:focus-visible {
+  @apply outline-none ring-2 ring-offset-2;
+  ring-color: var(--blue-accent);
 }
 
-.rbc-event-card.status-booked {
-  --event-accent: #60a5fa;
+/* ========================================
+   DRAG AND DROP
+   ======================================== */
+
+.rbc-addons-dnd .rbc-event {
+  cursor: move;
 }
 
-.rbc-event-card.status-completed {
-  --event-accent: #34d399;
+.rbc-addons-dnd-dragging {
+  opacity: 0.7 !important;
+  transform: rotate(2deg) !important;
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-lg) !important;
+  transition: none !important;
+  will-change: transform, opacity;
 }
 
-.rbc-event-card.status-missed {
-  --event-accent: #fb7185;
+.rbc-addons-dnd-drag-preview {
+  opacity: 0.8;
+  transform: rotate(-2deg);
 }
 
-.rbc-event-card.status-canceled {
-  --event-accent: #94a3b8;
+.rbc-addons-dnd-resizable {
+  position: relative;
 }
 
-.rbc-event:hover .rbc-event-card {
-  box-shadow: 0 18px 32px -22px rgba(15, 23, 42, 0.5);
-  border-color: #d5dcec;
+.rbc-addons-dnd-resize-anchor {
+  position: absolute;
+  width: 100%;
+  height: 10px;
+  background: transparent;
 }
 
-.rbc-day-slot .rbc-events-container {
-  overflow: visible !important;
+.rbc-addons-dnd-resize-anchor-top {
+  top: 0;
+  cursor: ns-resize;
 }
 
-.rbc-day-slot .rbc-event,
-.rbc-time-column .rbc-event {
-  max-width: 100% !important;
+.rbc-addons-dnd-resize-anchor-bottom {
+  bottom: 0;
+  cursor: ns-resize;
 }
 
-.rbc-addons-dnd {
-  flex: 1 1 auto !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0;
+/* ========================================
+   CURRENT TIME INDICATOR
+   ======================================== */
+
+.rbc-current-time-indicator {
+  @apply absolute left-0 right-0 z-30 pointer-events-none;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 113, 227, 0.6),
+    rgba(0, 113, 227, 1),
+    rgba(0, 113, 227, 0.6)
+  );
+  box-shadow:
+    0 0 12px rgba(0, 113, 227, 0.4),
+    0 0 24px rgba(0, 113, 227, 0.2);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.rbc-current-time-indicator::before {
+  content: "";
+  @apply absolute left-0 w-3 h-3 rounded-full;
+  background-color: var(--blue-accent);
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(0, 113, 227, 0.6);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.85;
+    filter: brightness(1.1);
+  }
+}
+
+/* ========================================
+   WEEK VIEW SPECIFIC
+   ======================================== */
+
+.rbc-time-view.rbc-week-view .rbc-header {
+  @apply px-4 py-3 text-center font-semibold border-b;
+  color: var(--text-primary);
+  border-color: var(--border-light);
+  background-color: var(--bg-light-grey);
+}
+
+.rbc-time-view.rbc-week-view .rbc-today {
+  background-color: var(--blue-light);
+  position: relative;
+}
+
+.rbc-time-view.rbc-week-view .rbc-today::after {
+  content: "";
+  @apply absolute top-0 left-0 right-0 h-1;
+  background: linear-gradient(to right, transparent, var(--blue-accent), transparent);
+}
+
+.rbc-time-view.rbc-week-view .rbc-day-bg {
+  border-left: 1px solid var(--border-light);
+}
+
+.rbc-time-view.rbc-week-view .rbc-day-bg:first-child {
+  @apply border-l-0;
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR
+   ======================================== */
+
+.rbc-time-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full border-2 border-gray-100;
+  transition: background-color 200ms ease;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Firefox scrollbar */
+.rbc-time-content {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* Mobile (< 640px) */
+@media (max-width: 640px) {
+  .rbc-time-gutter,
+  .rbc-time-header-gutter {
+    @apply w-16 min-w-16;
+  }
+
+  .rbc-time-gutter .rbc-label {
+    @apply text-xs;
+  }
+
+  .rbc-event-card-content {
+    @apply p-2;
+  }
+
+  .rbc-event-customer {
+    @apply text-xs;
+  }
+
+  .rbc-event-service {
+    @apply text-[10px];
+  }
+}
+
+/* Tablet (640px - 1024px) */
+@media (min-width: 640px) and (max-width: 1024px) {
+  .rbc-event-card:hover {
+    transform: scale(1.015) translateY(-1px);
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .rbc-time-gutter,
+  .rbc-time-header-gutter {
+    @apply w-24 min-w-24;
+  }
+
+  .rbc-event-card:hover {
+    transform: scale(1.03) translateY(-2px);
+  }
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+
+/* Selection */
+.rbc-slot-selection {
+  background-color: var(--blue-light);
+  border: 2px solid var(--blue-accent);
+  border-radius: 8px;
+  box-shadow: 0 0 16px rgba(0, 113, 227, 0.2);
+  z-index: 10;
+}
+
+/* Selected event */
+.rbc-selected {
+  @apply outline-none ring-2 ring-offset-2;
+  ring-color: var(--blue-accent);
+}
+
+/* Today highlight */
+.rbc-today {
+  background-color: var(--blue-light);
+}
+
+/* Prevent text selection during drag */
+.rbc-addons-dnd-dragging * {
+  user-select: none;
 }

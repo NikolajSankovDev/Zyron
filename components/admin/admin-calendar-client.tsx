@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { format, addDays, subDays, startOfWeek, addWeeks, subWeeks, addMonths, subMonths, isSameDay, startOfDay, startOfMonth, endOfMonth, endOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Settings, Plus, CalendarDays, CalendarRange } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings, Plus, CalendarDays, CalendarRange, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminCalendar, type RescheduleData } from "./AdminCalendar";
 // import { AdminCalendarDebug } from "./AdminCalendarDebug"; // Keep for debugging if needed
 import { CalendarSettingsModal } from "./calendar-settings";
+import { CalendarSkeleton } from "./CalendarSkeleton";
 import { AppointmentDetailPanel } from "./appointment-detail-panel";
 import { CreateAppointmentDialog } from "./create-appointment-dialog";
 import { RescheduleAppointmentDialog } from "./reschedule-appointment-dialog";
@@ -37,6 +39,7 @@ export function AdminCalendarClient({
 }: AdminCalendarClientProps) {
   const [currentDate, setCurrentDate] = useState(initialDate);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [weekViewBarberId, setWeekViewBarberId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Listen for date changes from mini calendar
@@ -85,9 +88,22 @@ export function AdminCalendarClient({
   const [rescheduleData, setRescheduleData] = useState<RescheduleData | null>(null);
   
   // Compute filtered barber IDs
+  // For week view, only show the selected barber
   const effectiveSelectedBarberIds = useMemo(() => {
+    if (viewMode === "week") {
+      // Use the week view barber if set, otherwise use first selected barber
+      const barberId = weekViewBarberId || settings.selectedBarberIds[0];
+      return barberId ? [barberId] : [];
+    }
     return settings.selectedBarberIds;
-  }, [settings.selectedBarberIds]);
+  }, [settings.selectedBarberIds, viewMode, weekViewBarberId]);
+
+  // Set initial week view barber when switching to week view
+  useEffect(() => {
+    if (viewMode === "week" && !weekViewBarberId && settings.selectedBarberIds.length > 0) {
+      setWeekViewBarberId(settings.selectedBarberIds[0]);
+    }
+  }, [viewMode, weekViewBarberId, settings.selectedBarberIds]);
   
   // Load settings from localStorage after mount (client-side only)
   // This prevents hydration mismatch while still loading user preferences
@@ -248,32 +264,38 @@ export function AdminCalendarClient({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 -mb-4 sm:-mb-6 lg:-mb-8">
-      {/* Header with Date Navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gray-900/80 backdrop-blur-sm rounded-xl border border-gray-800 mb-4 flex-shrink-0">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex items-center gap-1 bg-gray-800/60 rounded-lg p-1.5 border border-gray-700/50">
+      {/* Header with Date Navigation - Light & Clean Design */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 mb-6 rounded-xl border border-gray-200 bg-white shadow-md flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* View Toggle with Sliding Indicator */}
+          <div className="relative flex items-center gap-1.5 p-1.5 rounded-lg bg-gray-100 border border-gray-200">
             <button
               onClick={() => setViewMode("day")}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              className={`relative z-10 flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
                 viewMode === "day"
-                  ? "bg-primary text-white shadow-lg shadow-primary/25"
-                  : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                  ? "text-white"
+                  : "text-gray-900"
               }`}
             >
+              {viewMode === "day" && (
+                <div className="absolute inset-0 rounded-lg bg-blue-600 shadow-md -z-10" />
+              )}
               <CalendarDays className="h-4 w-4" />
-              <span className="hidden sm:inline">Day</span>
+              <span>Day</span>
             </button>
             <button
               onClick={() => setViewMode("week")}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              className={`relative z-10 flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
                 viewMode === "week"
-                  ? "bg-primary text-white shadow-lg shadow-primary/25"
-                  : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                  ? "text-white"
+                  : "text-gray-900"
               }`}
             >
+              {viewMode === "week" && (
+                <div className="absolute inset-0 rounded-lg bg-blue-600 shadow-md -z-10" />
+              )}
               <CalendarRange className="h-4 w-4" />
-              <span className="hidden sm:inline">Week</span>
+              <span>Week</span>
             </button>
           </div>
 
@@ -283,47 +305,71 @@ export function AdminCalendarClient({
               variant="ghost"
               size="icon"
               onClick={handlePrevious}
-              className="h-10 w-10 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-700/50"
+              className="h-11 w-11 rounded-lg bg-gray-100 border border-gray-200 text-gray-900 hover:border-blue-300 hover:bg-blue-50 transition-all"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            
+
             <button
               onClick={handleToday}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 border ${
+              className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 border ${
                 isToday
-                  ? "bg-primary/20 text-primary border-primary/50"
-                  : "text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
+                  ? "bg-blue-50 text-blue-600 border-blue-300 shadow-sm"
+                  : "text-gray-900 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300"
               }`}
             >
               Today
             </button>
-            
+
             <Button
               variant="ghost"
               size="icon"
               onClick={handleNext}
-              className="h-10 w-10 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-700/50"
+              className="h-11 w-11 rounded-lg bg-gray-100 border border-gray-200 text-gray-900 hover:border-blue-300 hover:bg-blue-50 transition-all"
             >
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Current Date Display */}
-          <div className="text-white text-lg font-semibold tracking-tight">
+          <div className="text-2xl font-bold text-gray-900 tracking-tight">
             {formatDateDisplay(currentDate)}
           </div>
         </div>
 
-        {/* Settings Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSettingsOpen(true)}
-          className="h-10 w-10 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-700/50"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Week View Barber Selector */}
+          {viewMode === "week" && barbers.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+              <User className="h-4 w-4 text-blue-600" />
+              <Select
+                value={weekViewBarberId || barbers[0]?.id}
+                onValueChange={setWeekViewBarberId}
+              >
+                <SelectTrigger className="bg-transparent border-none text-gray-900 font-medium h-auto p-0 gap-2 hover:text-blue-600 transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-200 rounded-lg">
+                  {barbers.map((barber) => (
+                    <SelectItem key={barber.id} value={barber.id} className="text-gray-900 focus:bg-blue-50 rounded-md">
+                      {barber.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Settings Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            className="h-11 w-11 rounded-lg bg-gray-100 border border-gray-200 text-gray-900 hover:border-blue-300 hover:bg-blue-50 transition-all"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Calendar - White card on dark background */}
@@ -350,13 +396,11 @@ export function AdminCalendarClient({
             onDateChange={handleDateChange}
           />
         ) : (
-          <div className="w-full h-full bg-white rounded-xl border border-gray-200 flex items-center justify-center">
-            <div className="text-gray-400">Loading calendar...</div>
-          </div>
+          <CalendarSkeleton />
         )}
       </div>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button - Blue Gradient */}
       <Button
         onClick={() => {
           setCreateDialogInitialDate(currentDate);
@@ -364,10 +408,10 @@ export function AdminCalendarClient({
           setCreateDialogInitialBarberId(undefined);
           setCreateDialogOpen(true);
         }}
-        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 z-50 transition-all duration-200 hover:scale-105 flex items-center justify-center"
+        className="group fixed bottom-6 right-6 lg:bottom-8 lg:right-8 h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 z-50 transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center"
         size="icon"
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-7 w-7 text-white transition-transform group-hover:rotate-90 duration-300" />
       </Button>
 
       {/* Settings Modal */}
