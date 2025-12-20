@@ -6,6 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { SidebarMiniCalendarWrapper } from "@/components/admin/sidebar-mini-calendar-wrapper";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({
   children,
   params,

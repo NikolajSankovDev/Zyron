@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { format, addDays, subDays, startOfWeek, addWeeks, subWeeks, addMonths, subMonths, isSameDay, startOfDay, startOfMonth, endOfMonth, endOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Settings, Plus, CalendarDays, CalendarRange, User } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { format, isSameDay, startOfDay, startOfMonth, endOfMonth, endOfWeek, startOfWeek } from "date-fns";
+import { Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminCalendar, type RescheduleData } from "./AdminCalendar";
@@ -148,30 +148,6 @@ export function AdminCalendarClient({
     }
   });
 
-  const handlePrevious = useCallback(() => {
-    if (viewMode === "day") {
-      setCurrentDate(prev => subDays(prev, 1));
-    } else if (viewMode === "week") {
-      setCurrentDate(prev => subWeeks(prev, 1));
-    } else {
-      setCurrentDate(prev => subMonths(prev, 1));
-    }
-  }, [viewMode]);
-
-  const handleNext = useCallback(() => {
-    if (viewMode === "day") {
-      setCurrentDate(prev => addDays(prev, 1));
-    } else if (viewMode === "week") {
-      setCurrentDate(prev => addWeeks(prev, 1));
-    } else {
-      setCurrentDate(prev => addMonths(prev, 1));
-    }
-  }, [viewMode]);
-
-  const handleToday = useCallback(() => {
-    setCurrentDate(new Date());
-  }, []);
-
   const handleSettingsChange = useCallback((newSettings: CalendarSettings) => {
     setSettings(newSettings);
   }, []);
@@ -248,171 +224,83 @@ export function AdminCalendarClient({
     window.location.reload();
   }, []);
 
-  const formatDateDisplay = (date: Date) => {
-    if (viewMode === "day") {
-      return format(date, "EEEE, d MMMM yyyy");
-    } else if (viewMode === "week") {
-      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-      const weekEnd = addDays(weekStart, 6);
-      return `${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`;
-    } else {
-      return format(date, "MMMM yyyy");
-    }
-  };
-
-  const isToday = isSameDay(currentDate, new Date());
-
   return (
-    <div className="flex flex-col flex-1 min-h-0 -mb-4 sm:-mb-6 lg:-mb-8">
-      {/* Header with Date Navigation - Light & Clean Design */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 mb-6 rounded-xl border border-gray-200 bg-white shadow-md flex-shrink-0">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* View Toggle with Sliding Indicator */}
-          <div className="relative flex items-center gap-1.5 p-1.5 rounded-lg bg-gray-100 border border-gray-200">
-            <button
-              onClick={() => setViewMode("day")}
-              className={`relative z-10 flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                viewMode === "day"
-                  ? "text-white"
-                  : "text-gray-900"
-              }`}
-            >
-              {viewMode === "day" && (
-                <div className="absolute inset-0 rounded-lg bg-blue-600 shadow-md -z-10" />
-              )}
-              <CalendarDays className="h-4 w-4" />
-              <span>Day</span>
-            </button>
-            <button
-              onClick={() => setViewMode("week")}
-              className={`relative z-10 flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                viewMode === "week"
-                  ? "text-white"
-                  : "text-gray-900"
-              }`}
-            >
-              {viewMode === "week" && (
-                <div className="absolute inset-0 rounded-lg bg-blue-600 shadow-md -z-10" />
-              )}
-              <CalendarRange className="h-4 w-4" />
-              <span>Week</span>
-            </button>
-          </div>
-
-          {/* Date Navigation */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handlePrevious}
-              className="h-11 w-11 rounded-lg bg-gray-100 border border-gray-200 text-gray-900 hover:border-blue-300 hover:bg-blue-50 transition-all"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-
-            <button
-              onClick={handleToday}
-              className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 border ${
-                isToday
-                  ? "bg-blue-50 text-blue-600 border-blue-300 shadow-sm"
-                  : "text-gray-900 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300"
-              }`}
-            >
-              Today
-            </button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNext}
-              className="h-11 w-11 rounded-lg bg-gray-100 border border-gray-200 text-gray-900 hover:border-blue-300 hover:bg-blue-50 transition-all"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Current Date Display */}
-          <div className="text-2xl font-bold text-gray-900 tracking-tight">
-            {formatDateDisplay(currentDate)}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Week View Barber Selector */}
+    <div className="flex h-full flex-col gap-4 rounded-xl border border-gray-800 bg-gray-900 p-4 text-white">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           {viewMode === "week" && barbers.length > 0 && (
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
-              <User className="h-4 w-4 text-blue-600" />
+            <>
+              <span className="text-sm text-gray-300">Barber</span>
               <Select
                 value={weekViewBarberId || barbers[0]?.id}
                 onValueChange={setWeekViewBarberId}
               >
-                <SelectTrigger className="bg-transparent border-none text-gray-900 font-medium h-auto p-0 gap-2 hover:text-blue-600 transition-colors">
-                  <SelectValue />
+                <SelectTrigger className="w-48 border-gray-700 bg-gray-800 text-white">
+                  <SelectValue placeholder="Select barber" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 rounded-lg">
+                <SelectContent>
                   {barbers.map((barber) => (
-                    <SelectItem key={barber.id} value={barber.id} className="text-gray-900 focus:bg-blue-50 rounded-md">
+                    <SelectItem key={barber.id} value={barber.id}>
                       {barber.displayName}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </>
           )}
+        </div>
 
-          {/* Settings Button */}
+        <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="icon"
+            variant="outline"
+            className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
             onClick={() => setSettingsOpen(true)}
-            className="h-11 w-11 rounded-lg bg-gray-100 border border-gray-200 text-gray-900 hover:border-blue-300 hover:bg-blue-50 transition-all"
           >
-            <Settings className="h-5 w-5" />
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Button>
+          <Button
+            onClick={() => {
+              setCreateDialogInitialDate(currentDate);
+              setCreateDialogInitialTime(undefined);
+              setCreateDialogInitialBarberId(undefined);
+              setCreateDialogOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New appointment
           </Button>
         </div>
       </div>
 
-      {/* Calendar - White card on dark background */}
-      <div className="relative w-full flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg bg-white p-2 text-gray-900">
         {settingsReady ? (
-          <AdminCalendar
-            date={currentDate}
-            barbers={barbers}
-            appointments={filteredAppointments}
-            onAppointmentClick={setSelectedAppointment}
-            onCellClick={(date, barberId) => {
-              setCreateDialogInitialDate(date);
-              setCreateDialogInitialTime(format(date, "HH:mm"));
-              setCreateDialogInitialBarberId(barberId);
-              setCreateDialogOpen(true);
-            }}
-            onAppointmentReschedule={handleAppointmentReschedule}
-            selectedBarberIds={effectiveSelectedBarberIds}
-            timeRange={settings.timeRange}
-            viewMode={viewMode}
-            timeInterval={settings.timeInterval}
-            intervalHeight={settings.intervalHeight}
-            onViewChange={handleViewChange}
-            onDateChange={handleDateChange}
-          />
+          <div className="h-full">
+            <AdminCalendar
+              date={currentDate}
+              barbers={barbers}
+              appointments={filteredAppointments}
+              onAppointmentClick={setSelectedAppointment}
+              onCellClick={(date, barberId) => {
+                setCreateDialogInitialDate(date);
+                setCreateDialogInitialTime(format(date, "HH:mm"));
+                setCreateDialogInitialBarberId(barberId);
+                setCreateDialogOpen(true);
+              }}
+              onAppointmentReschedule={handleAppointmentReschedule}
+              selectedBarberIds={effectiveSelectedBarberIds}
+              timeRange={settings.timeRange}
+              viewMode={viewMode}
+              timeInterval={settings.timeInterval}
+              intervalHeight={settings.intervalHeight}
+              onViewChange={handleViewChange}
+              onDateChange={handleDateChange}
+            />
+          </div>
         ) : (
           <CalendarSkeleton />
         )}
       </div>
-
-      {/* Floating Action Button - Blue Gradient */}
-      <Button
-        onClick={() => {
-          setCreateDialogInitialDate(currentDate);
-          setCreateDialogInitialTime(undefined);
-          setCreateDialogInitialBarberId(undefined);
-          setCreateDialogOpen(true);
-        }}
-        className="group fixed bottom-6 right-6 lg:bottom-8 lg:right-8 h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 z-50 transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center"
-        size="icon"
-      >
-        <Plus className="h-7 w-7 text-white transition-transform group-hover:rotate-90 duration-300" />
-      </Button>
 
       {/* Settings Modal */}
       <CalendarSettingsModal
@@ -437,45 +325,34 @@ export function AdminCalendarClient({
         }}
       />
 
-      {/* Appointment Detail Panel - Overlay */}
+      {/* Appointment Detail Panel */}
       {selectedAppointment && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
-            onClick={() => setSelectedAppointment(null)}
-          />
-          <AppointmentDetailPanel
-            appointment={selectedAppointment}
-            onClose={() => setSelectedAppointment(null)}
-            onDelete={handleDeleteAppointment}
-            onCheckout={(id) => {
-              handleUpdateStatus(id, "COMPLETED");
-            }}
-            onMarkArrived={(id) => {
-              handleUpdateStatus(id, "ARRIVED");
-            }}
-            onMarkMissed={(id) => {
-              handleUpdateStatus(id, "MISSED");
-            }}
-            onReschedule={(id) => {
-              // TODO: Open reschedule dialog
-              console.log("Reschedule:", id);
-            }}
-            onBookAgain={(id) => {
-              // TODO: Open booking dialog with same customer/service
-              console.log("Book again:", id);
-            }}
-            onAddService={(id) => {
-              // TODO: Open add service dialog
-              console.log("Add service:", id);
-            }}
-            onAddNote={(id) => {
-              // TODO: Open add note dialog
-              console.log("Add note:", id);
-            }}
-          />
-        </>
+        <AppointmentDetailPanel
+          appointment={selectedAppointment}
+          onClose={() => setSelectedAppointment(null)}
+          onDelete={handleDeleteAppointment}
+          onCheckout={(id) => {
+            handleUpdateStatus(id, "COMPLETED");
+          }}
+          onMarkArrived={(id) => {
+            handleUpdateStatus(id, "ARRIVED");
+          }}
+          onMarkMissed={(id) => {
+            handleUpdateStatus(id, "MISSED");
+          }}
+          onReschedule={(id) => {
+            console.log("Reschedule:", id);
+          }}
+          onBookAgain={(id) => {
+            console.log("Book again:", id);
+          }}
+          onAddService={(id) => {
+            console.log("Add service:", id);
+          }}
+          onAddNote={(id) => {
+            console.log("Add note:", id);
+          }}
+        />
       )}
 
       {/* Reschedule Appointment Dialog */}

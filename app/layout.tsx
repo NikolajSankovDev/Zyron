@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Premium barber services in Berlin",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -16,7 +18,7 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <ClerkProvider>
+    <ClerkProvider dynamic>
       <html lang={locale} suppressHydrationWarning>
         <body suppressHydrationWarning>{children}</body>
       </html>

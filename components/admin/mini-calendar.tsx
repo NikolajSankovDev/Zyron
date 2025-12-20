@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isSameDay, getDay } from "date-fns";
+import { useEffect, useState } from "react";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isSameDay, addDays } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "next-intl";
@@ -15,14 +15,23 @@ interface MiniCalendarProps {
 }
 
 export function MiniCalendar({ selectedDate, onDateSelect }: MiniCalendarProps) {
-  const locale = useLocale();
+  let locale = 'de';
+  try {
+    locale = useLocale();
+  } catch (e) {
+    // Fallback to 'de' if intl context is not available
+  }
   const dateFnsLocale = locales[locale as keyof typeof locales] || locales.de;
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
 
+  useEffect(() => {
+    setCurrentMonth(startOfMonth(selectedDate));
+  }, [selectedDate]);
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 1, locale: dateFnsLocale });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1, locale: dateFnsLocale });
 
   const days: Date[] = [];
   let day = startDate;
@@ -32,7 +41,10 @@ export function MiniCalendar({ selectedDate, onDateSelect }: MiniCalendarProps) 
     day.setDate(day.getDate() + 1);
   }
 
-  const weekDays = ["M", "D", "M", "D", "F", "S", "S"];
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1, locale: dateFnsLocale });
+  const weekDays = Array.from({ length: 7 }).map((_, index) =>
+    format(addDays(weekStart, index), "EEEEE", { locale: dateFnsLocale })
+  );
 
   const handlePreviousMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -47,66 +59,57 @@ export function MiniCalendar({ selectedDate, onDateSelect }: MiniCalendarProps) 
   };
 
   return (
-    <div className="p-4 bg-gray-800/30 rounded-lg border border-gray-700/30">
-      {/* Month Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-lg border border-gray-800 bg-gray-900 p-3 text-white">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8 text-gray-300 hover:bg-gray-800"
           onClick={handlePreviousMonth}
-          className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700/50"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="text-sm font-semibold text-white">
-          {format(currentMonth, "MMM", { locale: dateFnsLocale }).toUpperCase()}
-        </div>
-        <div className="text-sm text-gray-400">
-          {format(currentMonth, "yyyy")}
+        <div className="text-sm font-semibold">
+          {format(currentMonth, "MMM yyyy", { locale: dateFnsLocale })}
         </div>
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8 text-gray-300 hover:bg-gray-800"
           onClick={handleNextMonth}
-          className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700/50"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Week Days */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {weekDays.map((day, index) => (
-          <div
-            key={index}
-            className="text-center text-xs text-gray-500 font-medium py-1"
-          >
-            {day}
-          </div>
+      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] uppercase text-gray-400">
+        {weekDays.map((dayLabel, index) => (
+          <span key={index}>{dayLabel}</span>
         ))}
       </div>
 
-      {/* Calendar Days */}
       <div className="grid grid-cols-7 gap-1">
         {days.map((day, index) => {
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isSelected = isSameDay(day, selectedDate);
           const isToday = isSameDay(day, new Date());
 
+          let dayClasses = "text-gray-300 hover:bg-gray-800";
+          if (!isCurrentMonth) {
+            dayClasses = "text-gray-600 hover:bg-gray-800/60";
+          }
+          if (isToday) {
+            dayClasses += " border border-gray-600";
+          }
+          if (isSelected) {
+            dayClasses = "bg-white text-black hover:bg-white";
+          }
+
           return (
             <button
               key={index}
               onClick={() => handleDateClick(day)}
-              className={`
-                h-9 w-9 text-xs rounded transition-colors font-medium
-                ${!isCurrentMonth ? "text-gray-600" : "text-gray-300"}
-                ${isSelected 
-                  ? "bg-primary text-white font-semibold" 
-                  : isToday 
-                    ? "bg-gray-700/50 text-white font-semibold" 
-                    : "hover:bg-gray-700/50 hover:text-white"
-                }
-              `}
+              className={`flex h-8 items-center justify-center rounded-md text-sm transition ${dayClasses}`}
             >
               {format(day, "d")}
             </button>
@@ -116,4 +119,3 @@ export function MiniCalendar({ selectedDate, onDateSelect }: MiniCalendarProps) 
     </div>
   );
 }
-
