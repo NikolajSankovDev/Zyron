@@ -5,6 +5,7 @@ import { AdminTopBar } from "@/components/admin/admin-top-bar";
 import { getTranslations } from "next-intl/server";
 import { SidebarMiniCalendarWrapper } from "@/components/admin/sidebar-mini-calendar-wrapper";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
+import { ClerkContextCheck } from "@/components/admin/clerk-context-check";
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-black">
+      <ClerkContextCheck />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-72 lg:bg-gray-900 lg:border-r lg:border-gray-800">
         <div className="flex h-full flex-col">
