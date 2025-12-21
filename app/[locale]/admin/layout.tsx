@@ -41,7 +41,7 @@ export default async function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen flex flex-col bg-black">
       <ClerkContextCheck />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-72 lg:bg-gray-900 lg:border-r lg:border-gray-800">
@@ -62,7 +62,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="lg:pl-72 flex flex-col h-screen">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-72" data-main-content-wrapper>
         {/* Top Bar */}
         <AdminTopBar
           navItems={navItems}
@@ -71,7 +71,7 @@ export default async function AdminLayout({
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 flex flex-col">{children}</main>
+        <main className="flex-1 overflow-hidden admin-calendar-main" style={{ padding: 0, margin: 0 }} data-admin-main>{children}</main>
       </div>
     </div>
   );

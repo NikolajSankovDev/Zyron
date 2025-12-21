@@ -216,57 +216,34 @@ export function AdminCalendarClient({
     window.location.reload();
   }, []);
 
+
   return (
-    <div className="flex h-full flex-col gap-4 rounded-xl border border-gray-800 bg-gray-900 p-4 text-white">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {viewMode === "week" && barbers.length > 0 && (
-            <>
-              <span className="text-sm text-gray-300">Barber</span>
-              <Select
-                value={weekViewBarberId || barbers[0]?.id}
-                onValueChange={setWeekViewBarberId}
-              >
-                <SelectTrigger className="w-48 border-gray-700 bg-gray-800 text-white">
-                  <SelectValue placeholder="Select barber" />
-                </SelectTrigger>
-                <SelectContent>
-                  {barbers.map((barber) => (
-                    <SelectItem key={barber.id} value={barber.id}>
-                      {barber.displayName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-            onClick={() => setSettingsOpen(true)}
+    <div className="relative h-full w-full m-0 p-0 text-white">
+      {/* Week view barber selector - top left if needed */}
+      {viewMode === "week" && barbers.length > 0 && (
+        <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
+          <span className="text-sm text-gray-300">Barber</span>
+          <Select
+            value={weekViewBarberId || barbers[0]?.id}
+            onValueChange={setWeekViewBarberId}
           >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Button>
-          <Button
-            onClick={() => {
-              setCreateDialogInitialDate(currentDate);
-              setCreateDialogInitialTime(undefined);
-              setCreateDialogInitialBarberId(undefined);
-              setCreateDialogOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New appointment
-          </Button>
+            <SelectTrigger className="w-48 border-gray-700 bg-gray-800 text-white">
+              <SelectValue placeholder="Select barber" />
+            </SelectTrigger>
+            <SelectContent>
+              {barbers.map((barber) => (
+                <SelectItem key={barber.id} value={barber.id}>
+                  {barber.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 min-h-0 overflow-hidden rounded-lg bg-white p-2 text-gray-900">
-        <div className="h-full">
+      {/* Calendar container - full height and width, no padding, no margins */}
+      <div className="h-full w-full m-0 p-0 overflow-hidden bg-white text-gray-900">
+        <div className="h-full w-full">
           <AdminCalendar
             date={currentDate}
             barbers={barbers}
@@ -288,6 +265,30 @@ export function AdminCalendarClient({
             onDateChange={handleDateChange}
           />
         </div>
+      </div>
+
+      {/* Round icon buttons - bottom right */}
+      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-3">
+        <Button
+          variant="outline"
+          className="h-12 w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
+          onClick={() => setSettingsOpen(true)}
+          title="Settings"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
+        <Button
+          className="h-12 w-12 rounded-full bg-primary shadow-lg hover:bg-primary/90 p-0"
+          onClick={() => {
+            setCreateDialogInitialDate(currentDate);
+            setCreateDialogInitialTime(undefined);
+            setCreateDialogInitialBarberId(undefined);
+            setCreateDialogOpen(true);
+          }}
+          title="New appointment"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Settings Modal */}

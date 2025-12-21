@@ -34,7 +34,7 @@ export default async function AdminLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <div className="min-h-screen bg-black">
+      <div className="h-screen flex flex-col bg-black">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-80 lg:bg-gray-900 lg:border-r lg:border-gray-800">
         <div className="flex h-full flex-col">
@@ -54,7 +54,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="lg:pl-80">
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: '20rem' }} data-main-content-wrapper>
         {/* Top Bar */}
         <AdminTopBar
           navItems={navItems}
@@ -63,7 +63,7 @@ export default async function AdminLayout({
         />
 
         {/* Page Content */}
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-hidden admin-calendar-main" style={{ padding: 0, margin: 0 }} data-admin-main>{children}</main>
       </div>
     </div>
     </NextIntlClientProvider>
