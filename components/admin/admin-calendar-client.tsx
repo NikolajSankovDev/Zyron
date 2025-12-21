@@ -144,7 +144,7 @@ export function AdminCalendarClient({
     setSettings(newSettings);
   }, []);
 
-  const handleViewChange = useCallback((view: ViewMode) => {
+  const handleViewChange = useCallback((view: "day" | "week") => {
     setViewMode(view);
   }, []);
 
@@ -281,7 +281,7 @@ export function AdminCalendarClient({
             onAppointmentReschedule={handleAppointmentReschedule}
             selectedBarberIds={effectiveSelectedBarberIds}
             timeRange={settings.timeRange}
-            viewMode={viewMode}
+            viewMode={viewMode as "day" | "week"}
             timeInterval={settings.timeInterval}
             intervalHeight={settings.intervalHeight}
             onViewChange={handleViewChange}

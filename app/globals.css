@@ -375,40 +375,69 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* ==========================================================================
-   3. WEEK VIEW HEADER - Day names row (styled like barber headers)
+   3. LAYOUT FIXES
    ========================================================================== */
 
-/* Ensure the week view day header row is visible and uses same styling as barber headers */
+/* Day/week header styling */
+.admin-calendar__day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 6px;
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.admin-calendar__day-header-weekday {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-calendar__day-header-date {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   3.1 WEEK VIEW HEADER - Day names row (like barber names in day view)
+   ========================================================================== */
+
+/* Ensure the week view day header row is visible and styled */
 .admin-calendar .rbc-time-header-content > .rbc-row:first-child {
-  display: table-row !important;
+  display: flex !important;
+  flex-shrink: 0 !important;
   min-height: 48px !important;
   border-bottom: 1px solid #e5e7eb !important;
-  width: 100% !important;
 }
 
-/* Style .rbc-header cells in week view to match barber headers exactly */
-/* react-big-calendar uses table layout, so we need table-cell display */
+/* Style .rbc-header cells in week view to match barber headers */
 .admin-calendar .rbc-time-header-content > .rbc-row:first-child > .rbc-header {
-  padding: 0 !important;
-  border: none !important;
-  background: #fff !important;
-  display: table-cell !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   min-height: 48px !important;
-  width: auto !important;
-  vertical-align: middle !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  border-bottom: none !important;
+  overflow: visible !important;
 }
 
-/* Ensure header content is visible and fills the .rbc-header container */
-.admin-calendar .rbc-time-header-content > .rbc-row:first-child > .rbc-header .admin-calendar__resource-header-cell {
+/* Style the content inside week view headers */
+.admin-calendar .rbc-time-header-content > .rbc-row:first-child .admin-calendar__day-header {
   display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: 100% !important;
   height: 100% !important;
   min-height: 48px !important;
+  padding: 10px 6px !important;
+  background: #ffffff !important;
 }
 
 /* Resource row - single horizontal row */
@@ -432,9 +461,6 @@ body:has([data-radix-scroll-area-viewport]) {
 /* Time header content wrapper */
 .admin-calendar .rbc-time-header-content {
   border-left: 1px solid #e5e7eb !important;
-  display: table !important;
-  width: 100% !important;
-  table-layout: fixed !important;
 }
 
 .admin-calendar .rbc-time-header-content > .rbc-row.rbc-row-resource {
@@ -498,6 +524,18 @@ body:has([data-radix-scroll-area-viewport]) {
 
 .admin-calendar .rbc-time-gutter .rbc-time-slot {
   background: #f9fafb !important;
+}
+
+/* Time label text color - must be dark for visibility */
+/* Use more specific selector to override parent white text */
+.admin-calendar .rbc-time-gutter .rbc-timeslot-group .rbc-time-slot .rbc-label,
+.admin-calendar .rbc-time-gutter .rbc-label {
+  color: #1f2937 !important;
+}
+
+/* Override even more specifically for non-closed slots */
+.admin-calendar .rbc-time-gutter .rbc-timeslot-group .rbc-time-slot:not(.admin-calendar__slot--closed) .rbc-label {
+  color: #1f2937 !important;
 }
 
 .admin-calendar .rbc-time-gutter .admin-calendar__slot--closed {
