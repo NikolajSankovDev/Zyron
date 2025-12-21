@@ -291,6 +291,153 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* ==========================================================================
-   Admin Calendar Styling
+   Admin Calendar Styling - Clean Reset
    ==========================================================================
  */
+
+/*
+ * IMPORTANT: Reset ALL borders in calendar to light gray
+ * This overrides the dark border-border inherited from Tailwind
+ */
+.admin-calendar,
+.admin-calendar *,
+.admin-calendar *::before,
+.admin-calendar *::after {
+  border-color: #e5e7eb !important;
+}
+
+/* ==========================================================================
+   1. HIDE DATE HEADER ROW AND ALL-DAY CELLS
+   ========================================================================== */
+
+/* Hide the date/time header row (second row in header) */
+.admin-calendar .rbc-time-header-cell {
+  display: none !important;
+}
+
+/* Hide all-day events section */
+.admin-calendar .rbc-allday-cell {
+  display: none !important;
+}
+
+/* ==========================================================================
+   2. BARBER NAME HEADER STYLING
+   ========================================================================== */
+
+/* Reset the .rbc-header container */
+.admin-calendar .rbc-header {
+  padding: 0 !important;
+  border: none !important;
+  background: #fff !important;
+}
+
+/* Custom barber name header cell */
+.admin-calendar__resource-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb !important;
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Time gutter header (left column) */
+.admin-calendar__resource-header-cell--gutter {
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Barber name text */
+.admin-calendar__resource-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-calendar__time-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* ==========================================================================
+   3. LAYOUT FIXES
+   ========================================================================== */
+
+/* Resource row - single horizontal row */
+.admin-calendar .rbc-row-resource {
+  border-bottom: none !important;
+}
+
+/* Time header - remove extra borders */
+.admin-calendar .rbc-time-header {
+  border-bottom: none !important;
+}
+
+.admin-calendar .rbc-time-header > .rbc-row:first-child {
+  border-bottom: none !important;
+}
+
+.admin-calendar .rbc-time-header > .rbc-row.rbc-row-resource {
+  border-bottom: none !important;
+}
+
+/* Time header content wrapper */
+.admin-calendar .rbc-time-header-content {
+  border-left: 1px solid #e5e7eb !important;
+}
+
+.admin-calendar .rbc-time-header-content > .rbc-row.rbc-row-resource {
+  border-bottom: none !important;
+}
+
+/* Time gutter */
+.admin-calendar .rbc-time-header-gutter {
+  border-right: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+}
+
+/* ==========================================================================
+   4. TIME GRID STYLING
+   ========================================================================== */
+
+/* Time slots */
+.admin-calendar .rbc-time-slot {
+  border-top: 1px solid #f3f4f6 !important;
+}
+
+.admin-calendar .rbc-timeslot-group {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Day slots */
+.admin-calendar .rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid #f3f4f6 !important;
+}
+
+/* Time content area */
+.admin-calendar .rbc-time-content {
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.admin-calendar .rbc-time-content > * + * > * {
+  border-left: 1px solid #e5e7eb !important;
+}
+
+/* Time gutter column */
+.admin-calendar .rbc-time-gutter .rbc-timeslot-group {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.admin-calendar .rbc-time-view {
+  border: 1px solid #e5e7eb !important;
+}

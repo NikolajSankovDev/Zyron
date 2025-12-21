@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { Calendar, dateFnsLocalizer, SlotInfo, View, Views } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, SlotInfo, View, Views, type ResourceHeaderProps } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek as dateFnsStartOfWeek, getDay } from "date-fns";
 import { de, enUS, ru } from "date-fns/locale";
@@ -70,6 +70,26 @@ const viewMap: Record<string, View> = {
   month: Views.MONTH,
 };
 
+type CalendarResource = {
+  id: string;
+  title: string;
+};
+
+// Custom header cell content (keep a single root node so the grid layout stays intact)
+const ResourceHeader = ({ label, resource }: ResourceHeaderProps<CalendarResource>) => (
+  <div className="admin-calendar__resource-header-cell">
+    <span className="admin-calendar__resource-name">
+      {(label ?? resource?.title ?? "") as React.ReactNode}
+    </span>
+  </div>
+);
+
+const TimeGutterHeader = () => (
+  <div className="admin-calendar__resource-header-cell admin-calendar__resource-header-cell--gutter">
+    <span className="admin-calendar__time-label">Time</span>
+  </div>
+);
+
 export function AdminCalendar({
   date,
   barbers,
@@ -96,7 +116,7 @@ export function AdminCalendar({
   }, [barbers, selectedBarberIds]);
 
   // Transform barbers to resources
-  const resources = useMemo(() => {
+  const resources = useMemo<CalendarResource[] | undefined>(() => {
     if (viewMode !== "day") return undefined;
 
     return visibleBarbers.map((barber) => ({
@@ -192,7 +212,7 @@ export function AdminCalendar({
   }
 
   return (
-    <div style={{ height: '100%' }}>
+    <div className="admin-calendar" style={{ height: '100%' }}>
       <DragAndDropCalendar
         localizer={localizer}
         events={events}
@@ -222,6 +242,10 @@ export function AdminCalendar({
         selectable
         culture={locale}
         toolbar
+        components={{
+          resourceHeader: ResourceHeader,
+          timeGutterHeader: TimeGutterHeader,
+        }}
       />
     </div>
   );
