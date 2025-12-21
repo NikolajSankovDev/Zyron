@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Calendar, dateFnsLocalizer, SlotInfo, View, Views, type ResourceHeaderProps, type EventProps } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek as dateFnsStartOfWeek, getDay } from "date-fns";
@@ -201,6 +201,7 @@ export function AdminCalendar({
 }: AdminCalendarProps) {
   const locale = useLocale();
   const localeForFormat = useMemo(() => locales[locale as keyof typeof locales] || enUS, [locale]);
+  const [isScrollReady, setIsScrollReady] = useState(false);
 
   const workingHoursConfig = useMemo(() => {
     const defaultStart = toMinutes(DEFAULT_DAY_START, DEFAULT_DAY_START);
@@ -347,6 +348,116 @@ export function AdminCalendar({
     [workingHoursConfig.openIntervals]
   );
 
+  // Scroll to top when view changes - use useLayoutEffect to prevent visible scroll jump
+  useLayoutEffect(() => {
+    const scrollToTop = () => {
+      // Find all possible scrollable containers in react-big-calendar
+      const timeContent = document.querySelector('.admin-calendar .rbc-time-content');
+      const scrollContainer = document.querySelector('.admin-calendar .rbc-time-content > div');
+      
+      // Scroll all found containers to top
+      [timeContent, scrollContainer].forEach((element) => {
+        if (element) {
+          (element as HTMLElement).scrollTop = 0;
+        }
+      });
+    };
+
+    // Scroll immediately (synchronously before paint)
+    scrollToTop();
+  }, [viewMode]);
+
+  // Aggressively reset scroll during initial render and only show calendar when scroll is confirmed at top
+  useEffect(() => {
+    setIsScrollReady(false);
+    let frameCount = 0;
+    const maxFrames = 15; // Check for 15 frames to ensure scroll stays at 0
+    let rafId: number | null = null;
+    let consecutiveZeros = 0;
+    const requiredZeros = 3; // Need 3 consecutive frames with scroll at 0
+    let hasSetScrollReady = false; // Track if we've set isScrollReady to true in this effect run
+
+    const scrollToTop = () => {
+      const timeContent = document.querySelector('.admin-calendar .rbc-time-content');
+      const scrollContainer = document.querySelector('.admin-calendar .rbc-time-content > div');
+      
+      [timeContent, scrollContainer].forEach((element) => {
+        if (element) {
+          (element as HTMLElement).scrollTop = 0;
+        }
+      });
+    };
+
+    const checkScrollPosition = () => {
+      const timeContent = document.querySelector('.admin-calendar .rbc-time-content');
+      const scrollContainer = document.querySelector('.admin-calendar .rbc-time-content > div');
+      
+      let allAtTop = true;
+      [timeContent, scrollContainer].forEach((element) => {
+        if (element && (element as HTMLElement).scrollTop !== 0) {
+          allAtTop = false;
+          (element as HTMLElement).scrollTop = 0;
+        }
+      });
+
+      if (allAtTop) {
+        consecutiveZeros++;
+        if (consecutiveZeros >= requiredZeros && !hasSetScrollReady) {
+          hasSetScrollReady = true;
+          setIsScrollReady(true);
+          return;
+        }
+      } else {
+        consecutiveZeros = 0;
+      }
+
+      frameCount++;
+      if (frameCount < maxFrames) {
+        rafId = requestAnimationFrame(checkScrollPosition);
+      } else if (!hasSetScrollReady) {
+        // If we've checked enough frames, show it anyway
+        hasSetScrollReady = true;
+        setIsScrollReady(true);
+      }
+    };
+
+    // Start checking
+    scrollToTop();
+    rafId = requestAnimationFrame(checkScrollPosition);
+
+    // Also watch for DOM mutations and reset scroll
+    const calendarElement = document.querySelector('.admin-calendar');
+    if (calendarElement) {
+      const observer = new MutationObserver(() => {
+        // Reset when DOM changes (but don't reset hasSetScrollReady - we want to show calendar once it's ready)
+        frameCount = 0;
+        consecutiveZeros = 0;
+        scrollToTop();
+        if (rafId === null && !hasSetScrollReady) {
+          rafId = requestAnimationFrame(checkScrollPosition);
+        }
+      });
+
+      observer.observe(calendarElement, {
+        childList: true,
+        subtree: true,
+      });
+
+      return () => {
+        observer.disconnect();
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+      };
+    }
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [viewMode]);
+
   // Apply inline styles to week view headers (workaround for CSS not applying)
   useEffect(() => {
     if (viewMode !== 'week') return;
@@ -410,7 +521,7 @@ export function AdminCalendar({
   }
 
   return (
-    <div className="admin-calendar" style={{ height: '100%' }}>
+    <div className="admin-calendar" style={{ height: '100%', opacity: isScrollReady ? 1 : 0, transition: 'opacity 0.1s' }}>
       <DragAndDropCalendar
         localizer={localizer}
         events={events}
