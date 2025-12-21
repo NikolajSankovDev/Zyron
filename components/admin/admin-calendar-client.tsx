@@ -2,9 +2,15 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, isSameDay, startOfDay, endOfWeek, startOfWeek } from "date-fns";
-import { Settings, Plus } from "lucide-react";
+import { Settings, Plus, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AdminCalendar, type RescheduleData } from "./AdminCalendar";
 // import { AdminCalendarDebug } from "./AdminCalendarDebug"; // Keep for debugging if needed
 import { CalendarSettingsModal } from "./calendar-settings";
@@ -84,6 +90,9 @@ export function AdminCalendarClient({
   // Reschedule dialog state
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [rescheduleData, setRescheduleData] = useState<RescheduleData | null>(null);
+  
+  // Barber selection dialog state (week view only)
+  const [barberDialogOpen, setBarberDialogOpen] = useState(false);
   
   // Compute filtered barber IDs
   // For week view, only show the selected barber
@@ -216,30 +225,16 @@ export function AdminCalendarClient({
     window.location.reload();
   }, []);
 
+  // Ensure main content wrapper has margin-left for sidebar
+  useEffect(() => {
+    const mainContentWrapper = document.querySelector('[data-main-content-wrapper]');
+    if (mainContentWrapper) {
+      (mainContentWrapper as HTMLElement).style.setProperty('margin-left', '18rem', 'important');
+    }
+  }, []);
 
   return (
     <div className="relative h-full w-full m-0 p-0 text-white">
-      {/* Week view barber selector - top left if needed */}
-      {viewMode === "week" && barbers.length > 0 && (
-        <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
-          <span className="text-sm text-gray-300">Barber</span>
-          <Select
-            value={weekViewBarberId || barbers[0]?.id}
-            onValueChange={setWeekViewBarberId}
-          >
-            <SelectTrigger className="w-48 border-gray-700 bg-gray-800 text-white">
-              <SelectValue placeholder="Select barber" />
-            </SelectTrigger>
-            <SelectContent>
-              {barbers.map((barber) => (
-                <SelectItem key={barber.id} value={barber.id}>
-                  {barber.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       {/* Calendar container - full height and width, no padding, no margins */}
       <div className="h-full w-full m-0 p-0 overflow-hidden bg-white text-gray-900">
@@ -269,6 +264,17 @@ export function AdminCalendarClient({
 
       {/* Round icon buttons - bottom right */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-3">
+        {/* Barber selector button - only in week view */}
+        {viewMode === "week" && barbers.length > 0 && (
+          <Button
+            variant="outline"
+            className="h-12 w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
+            onClick={() => setBarberDialogOpen(true)}
+            title="Select barber"
+          >
+            <User className="h-5 w-5" />
+          </Button>
+        )}
         <Button
           variant="outline"
           className="h-12 w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
@@ -352,6 +358,52 @@ export function AdminCalendarClient({
         barbers={barbers}
         onConfirm={handleConfirmReschedule}
       />
+
+      {/* Barber Selection Dialog - Week View Only */}
+      {viewMode === "week" && (
+        <Dialog open={barberDialogOpen} onOpenChange={setBarberDialogOpen}>
+          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-white text-lg font-semibold flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Select Barber
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-gray-400 hover:text-white"
+                  onClick={() => setBarberDialogOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2">
+                {barbers.map((barber) => (
+                  <Button
+                    key={barber.id}
+                    variant={weekViewBarberId === barber.id ? "default" : "outline"}
+                    className={`w-full justify-start ${
+                      weekViewBarberId === barber.id
+                        ? "bg-primary hover:bg-primary/90 text-white"
+                        : "border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+                    }`}
+                    onClick={() => {
+                      setWeekViewBarberId(barber.id);
+                      setBarberDialogOpen(false);
+                    }}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    {barber.displayName}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

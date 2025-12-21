@@ -62,7 +62,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-72" data-main-content-wrapper>
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-72" data-main-content-wrapper style={{ marginLeft: '18rem' }}>
         {/* Top Bar */}
         <AdminTopBar
           navItems={navItems}

@@ -724,8 +724,12 @@ main.admin-calendar-main {
 }
 
 /* Ensure main content wrapper has margin for sidebar */
-[data-main-content-wrapper],
-.flex-1.flex.flex-col.overflow-hidden[style*="marginLeft"],
-.flex-1.flex.flex-col.overflow-hidden {
+[data-main-content-wrapper] {
   margin-left: 18rem !important; /* 288px = w-72 */
+}
+
+@media (min-width: 1024px) {
+  [data-main-content-wrapper] {
+    margin-left: 18rem !important; /* 288px = w-72 */
+  }
 }
