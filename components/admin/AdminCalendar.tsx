@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { Calendar, dateFnsLocalizer, SlotInfo, View, Views, type ResourceHeaderProps } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, SlotInfo, View, Views, type ResourceHeaderProps, type EventProps } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek as dateFnsStartOfWeek, getDay } from "date-fns";
 import { de, enUS, ru } from "date-fns/locale";
 import { useLocale } from "next-intl";
-import type { AppointmentDisplayData, BarberDisplayData } from "@/lib/types/admin-calendar";
+import type { AppointmentDisplayData, BarberDisplayData, AppointmentStatus } from "@/lib/types/admin-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
@@ -115,6 +115,75 @@ const TimeGutterHeader = () => (
     <span className="admin-calendar__time-label">Time</span>
   </div>
 );
+
+// Status color mapping
+const STATUS_COLORS: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
+  BOOKED: { bg: "#EFF6FF", border: "#3B82F6", text: "#1E40AF" },      // Blue
+  ARRIVED: { bg: "#F0FDF4", border: "#22C55E", text: "#166534" },     // Green
+  COMPLETED: { bg: "#F9FAFB", border: "#9CA3AF", text: "#4B5563" },   // Gray
+  MISSED: { bg: "#FEF2F2", border: "#EF4444", text: "#991B1B" },      // Red
+  CANCELED: { bg: "#FFF7ED", border: "#F97316", text: "#9A3412" },    // Orange
+};
+
+// Custom event component for appointment display
+interface CalendarEventData {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  appointment: AppointmentDisplayData;
+  resourceId: string;
+}
+
+const CalendarEvent = ({ event }: EventProps<CalendarEventData>) => {
+  const appointment = event.appointment;
+  if (!appointment) return <span>{event.title}</span>;
+
+  const startTime = format(new Date(appointment.startTime), "HH:mm");
+  const endTime = format(new Date(appointment.endTime), "HH:mm");
+  const services = appointment.services.map((s) => s.serviceName).join(", ");
+  const statusColors = STATUS_COLORS[appointment.status] || STATUS_COLORS.BOOKED;
+
+  return (
+    <div
+      className="calendar-event"
+      style={{
+        borderLeftColor: statusColors.border,
+        backgroundColor: statusColors.bg,
+        color: statusColors.text,
+      }}
+    >
+      <div className="calendar-event__time">
+        {startTime} - {endTime}
+      </div>
+      <div className="calendar-event__customer">
+        {appointment.customerName}
+      </div>
+      {services && (
+        <div className="calendar-event__services">
+          {services}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Event prop getter for status-based styling
+const eventPropGetter = (event: CalendarEventData) => {
+  const appointment = event.appointment;
+  if (!appointment) return {};
+
+  const statusColors = STATUS_COLORS[appointment.status] || STATUS_COLORS.BOOKED;
+
+  return {
+    className: `calendar-event-wrapper calendar-event-wrapper--${appointment.status.toLowerCase()}`,
+    style: {
+      backgroundColor: statusColors.bg,
+      borderColor: statusColors.border,
+      color: statusColors.text,
+    },
+  };
+};
 
 export function AdminCalendar({
   date,
@@ -314,11 +383,17 @@ export function AdminCalendar({
         min={workingHoursConfig.minTime}
         max={workingHoursConfig.maxTime}
         slotPropGetter={slotPropGetter}
+        eventPropGetter={eventPropGetter as any}
         culture={locale}
         toolbar
+        showMultiDayTimes={false}
+        formats={{
+          eventTimeRangeFormat: () => "",
+        }}
         components={{
           resourceHeader: ResourceHeader,
           timeGutterHeader: TimeGutterHeader,
+          event: CalendarEvent as any,
         }}
       />
     </div>

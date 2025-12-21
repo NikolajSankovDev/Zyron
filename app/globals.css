@@ -424,14 +424,25 @@ body:has([data-radix-scroll-area-viewport]) {
   border-top: 1px solid #f3f4f6 !important;
 }
 
-/* Closed/greyed time slots */
+/* Closed/greyed time slots - Non-working hours */
 .admin-calendar .admin-calendar__slot--closed {
-  background: #f5f6f7 !important;
+  background: #e5e7eb !important;
   color: #9ca3af !important;
 }
 
+/* Striped pattern for closed slots to make them more distinct */
+.admin-calendar .rbc-day-slot .admin-calendar__slot--closed {
+  background: repeating-linear-gradient(
+    -45deg,
+    #e5e7eb,
+    #e5e7eb 4px,
+    #d1d5db 4px,
+    #d1d5db 8px
+  ) !important;
+}
+
 .admin-calendar .rbc-selected-cell.admin-calendar__slot--closed {
-  background: #e5e7eb !important;
+  background: #d1d5db !important;
 }
 
 /* Time content area */
@@ -443,11 +454,185 @@ body:has([data-radix-scroll-area-viewport]) {
   border-left: 1px solid #e5e7eb !important;
 }
 
-/* Time gutter column */
+/* Time gutter column - ensure it doesn't get closed slot styling */
 .admin-calendar .rbc-time-gutter .rbc-timeslot-group {
   border-bottom: 1px solid #e5e7eb !important;
 }
 
+.admin-calendar .rbc-time-gutter .rbc-time-slot {
+  background: #f9fafb !important;
+}
+
+.admin-calendar .rbc-time-gutter .admin-calendar__slot--closed {
+  background: #f9fafb !important;
+}
+
 .admin-calendar .rbc-time-view {
   border: 1px solid #e5e7eb !important;
+}
+
+/* ==========================================================================
+   5. CUSTOM EVENT BOX STYLING
+   ========================================================================== */
+
+/* Reset default event wrapper styling */
+.admin-calendar .rbc-event {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden !important;
+}
+
+.admin-calendar .rbc-event:focus {
+  outline: 2px solid #3B82F6 !important;
+  outline-offset: 1px !important;
+}
+
+/* Event wrapper for status-based colors */
+.admin-calendar .calendar-event-wrapper {
+  border-radius: 6px !important;
+  overflow: hidden !important;
+}
+
+/* Custom event content container */
+.calendar-event {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px 4px 10px;
+  height: 100%;
+  width: 100%;
+  border-left: 3px solid;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.calendar-event:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Time display - smaller, muted */
+.calendar-event__time {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.8;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Customer name - bold and prominent */
+.calendar-event__customer {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Services list - smaller, muted */
+.calendar-event__services {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.75;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status-specific hover states */
+.calendar-event-wrapper--booked .calendar-event:hover {
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.calendar-event-wrapper--arrived .calendar-event:hover {
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+}
+
+.calendar-event-wrapper--completed .calendar-event:hover {
+  box-shadow: 0 2px 8px rgba(156, 163, 175, 0.25);
+}
+
+.calendar-event-wrapper--missed .calendar-event:hover {
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+.calendar-event-wrapper--canceled .calendar-event:hover {
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+}
+
+/* Hide default event label and time display */
+.admin-calendar .rbc-event-label {
+  display: none !important;
+}
+
+/* Hide the default time range shown by react-big-calendar in day/week views */
+.admin-calendar .rbc-event .rbc-event-label,
+.admin-calendar .rbc-day-slot .rbc-event-label {
+  display: none !important;
+}
+
+/* Ensure the event content takes full space without default time prefix */
+.admin-calendar .rbc-event-content > span:first-child:not(.calendar-event *) {
+  display: none !important;
+}
+
+/* Hide any time displays that aren't our custom one */
+.admin-calendar .rbc-event-content > .rbc-event-time,
+.admin-calendar .rbc-events-container .rbc-event-time {
+  display: none !important;
+}
+
+/* Override any inline time text before our component */
+.admin-calendar .rbc-event-content::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Event content - ensure full height */
+.admin-calendar .rbc-event-content {
+  height: 100% !important;
+  line-height: 1 !important;
+}
+
+/* Continued events (spanning multiple days) */
+.admin-calendar .rbc-event-continues-prior {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.admin-calendar .rbc-event-continues-after {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+/* Adjust for short appointments - show only essential info */
+.admin-calendar .rbc-event[style*="height: 28px"] .calendar-event__services,
+.admin-calendar .rbc-event[style*="height: 2"] .calendar-event__services {
+  display: none;
+}
+
+/* Month view event styling */
+.admin-calendar .rbc-month-view .calendar-event {
+  padding: 2px 4px 2px 8px;
+  border-left-width: 2px;
+}
+
+.admin-calendar .rbc-month-view .calendar-event__time {
+  display: none;
+}
+
+.admin-calendar .rbc-month-view .calendar-event__customer {
+  font-size: 11px;
+}
+
+.admin-calendar .rbc-month-view .calendar-event__services {
+  display: none;
 }
