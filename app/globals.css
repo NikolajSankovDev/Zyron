@@ -424,6 +424,16 @@ body:has([data-radix-scroll-area-viewport]) {
   border-top: 1px solid #f3f4f6 !important;
 }
 
+/* Closed/greyed time slots */
+.admin-calendar .admin-calendar__slot--closed {
+  background: #f5f6f7 !important;
+  color: #9ca3af !important;
+}
+
+.admin-calendar .rbc-selected-cell.admin-calendar__slot--closed {
+  background: #e5e7eb !important;
+}
+
 /* Time content area */
 .admin-calendar .rbc-time-content {
   border-top: 1px solid #e5e7eb !important;

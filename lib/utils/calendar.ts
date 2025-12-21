@@ -172,7 +172,7 @@ export function calculateDailyTotal(appointments: AppointmentDisplayData[]): num
  */
 export function getDefaultCalendarSettings(barbers?: Array<{ workingHours: { startTime: string; endTime: string } | null }>): CalendarSettings {
   let defaultTimeRange = {
-    start: "08:00",
+    start: "10:00",
     end: "20:00",
   };
 
@@ -287,4 +287,3 @@ export function getIntervalHeight(height: "small" | "medium" | "large"): number 
       return 28;
   }
 }
-

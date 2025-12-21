@@ -3,7 +3,6 @@
 import { createAppointment } from "@/lib/services/appointment";
 import { sendBookingConfirmation } from "@/lib/services/email";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
 
@@ -63,7 +62,12 @@ export async function createAppointmentAction(formData: FormData) {
     }
 
     revalidatePath("/account");
-    redirect("/account/appointments");
+
+    // Return success so the client can handle navigation without swallowing NEXT_REDIRECT
+    return {
+      success: true,
+      appointmentId: appointment.id,
+    };
   } catch (error: any) {
     console.error("Appointment creation error:", error);
     return {

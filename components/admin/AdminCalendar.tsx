@@ -75,6 +75,32 @@ type CalendarResource = {
   title: string;
 };
 
+const DEFAULT_DAY_START = "10:00";
+const DEFAULT_DAY_END = "20:00";
+const BREAK_START_MINUTES = 14 * 60 + 30; // 14:30
+const BREAK_END_MINUTES = 15 * 60; // 15:00
+const CLOSED_DAY = 0; // Sunday
+
+const toMinutes = (timeStr: string, fallback: string): number => {
+  const [h, m] = (timeStr || fallback).split(":").map(Number);
+  const hours = Number.isFinite(h) ? h : 0;
+  const minutes = Number.isFinite(m) ? m : 0;
+  return hours * 60 + minutes;
+};
+
+const minutesToDate = (baseDate: Date, minutes: number): Date => {
+  const clamped = Math.min(24 * 60, Math.max(0, minutes));
+  const hours = Math.floor(clamped / 60);
+  const mins = clamped % 60;
+  const date = new Date(baseDate);
+  date.setHours(hours, mins, 0, 0);
+  return date;
+};
+
+const getPaddingMinutes = (interval: number): number => {
+  return interval === 15 ? 45 : 60;
+};
+
 // Custom header cell content (keep a single root node so the grid layout stays intact)
 const ResourceHeader = ({ label, resource }: ResourceHeaderProps<CalendarResource>) => (
   <div className="admin-calendar__resource-header-cell">
@@ -98,7 +124,7 @@ export function AdminCalendar({
   onCellClick,
   onAppointmentReschedule,
   selectedBarberIds,
-  timeRange = { start: "09:00", end: "20:00" },
+  timeRange = { start: "10:00", end: "20:00" },
   viewMode = "day",
   timeInterval = 15,
   intervalHeight = "medium",
@@ -106,6 +132,32 @@ export function AdminCalendar({
   onDateChange,
 }: AdminCalendarProps) {
   const locale = useLocale();
+
+  const workingHoursConfig = useMemo(() => {
+    const defaultStart = toMinutes(DEFAULT_DAY_START, DEFAULT_DAY_START);
+    const defaultEnd = toMinutes(DEFAULT_DAY_END, DEFAULT_DAY_END);
+    const userStart = toMinutes(timeRange.start ?? DEFAULT_DAY_START, DEFAULT_DAY_START);
+    const userEnd = toMinutes(timeRange.end ?? DEFAULT_DAY_END, DEFAULT_DAY_END);
+
+    // Clamp to working window (10:00 - 20:00) but allow narrowing inside it
+    const dayStartMinutes = Math.max(defaultStart, userStart);
+    const dayEndMinutes = Math.max(dayStartMinutes, Math.min(defaultEnd, userEnd));
+    const paddingMinutes = getPaddingMinutes(timeInterval);
+
+    const minTime = minutesToDate(date, dayStartMinutes - paddingMinutes);
+    const maxTime = minutesToDate(date, dayEndMinutes + paddingMinutes);
+
+    const openIntervals = [
+      { start: dayStartMinutes, end: Math.min(BREAK_START_MINUTES, dayEndMinutes) },
+      { start: Math.max(BREAK_END_MINUTES, dayStartMinutes), end: dayEndMinutes },
+    ].filter(({ start, end }) => end > start);
+
+    return {
+      openIntervals,
+      minTime,
+      maxTime,
+    };
+  }, [date, timeInterval, timeRange.end, timeRange.start]);
 
   // Filter barbers based on selection
   const visibleBarbers = useMemo(() => {
@@ -207,6 +259,25 @@ export function AdminCalendar({
     });
   }, [onAppointmentReschedule]);
 
+  const slotPropGetter = useCallback(
+    (slotDate: Date) => {
+      const day = slotDate.getDay();
+      if (day === CLOSED_DAY) {
+        return { className: "admin-calendar__slot--closed" };
+      }
+
+      const minutes = slotDate.getHours() * 60 + slotDate.getMinutes();
+      const isOpen = workingHoursConfig.openIntervals.some(
+        ({ start, end }) => minutes >= start && minutes < end
+      );
+
+      return {
+        className: isOpen ? undefined : "admin-calendar__slot--closed",
+      };
+    },
+    [workingHoursConfig.openIntervals]
+  );
+
   if (visibleBarbers.length === 0) {
     return <div>No barbers selected</div>;
   }
@@ -233,13 +304,16 @@ export function AdminCalendar({
         defaultDate={date}
         date={date}
         step={timeInterval}
-        timeslots={2}
+        timeslots={1}
         onSelectEvent={handleSelectEvent}
         onSelectSlot={handleSelectSlot}
         onEventDrop={handleEventDrop}
         onView={handleViewChange}
         onNavigate={handleNavigate}
         selectable
+        min={workingHoursConfig.minTime}
+        max={workingHoursConfig.maxTime}
+        slotPropGetter={slotPropGetter}
         culture={locale}
         toolbar
         components={{

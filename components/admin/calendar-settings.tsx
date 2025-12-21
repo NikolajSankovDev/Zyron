@@ -25,7 +25,7 @@ interface CalendarSettingsProps {
 // Calculate time range from barber working hours
 function calculateWorkingHoursRange(barbers: BarberDisplayData[]): { start: string; end: string } {
   if (barbers.length === 0) {
-    return { start: "08:00", end: "20:00" };
+    return { start: "10:00", end: "20:00" };
   }
 
   let earliestHour = 23;
