@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { format, isSameDay, startOfDay, startOfMonth, endOfMonth, endOfWeek, startOfWeek } from "date-fns";
+import { format, isSameDay, startOfDay, endOfWeek, startOfWeek } from "date-fns";
 import { Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminCalendar, type RescheduleData } from "./AdminCalendar";
 // import { AdminCalendarDebug } from "./AdminCalendarDebug"; // Keep for debugging if needed
 import { CalendarSettingsModal } from "./calendar-settings";
-import { CalendarSkeleton } from "./CalendarSkeleton";
 import { AppointmentDetailPanel } from "./appointment-detail-panel";
 import { CreateAppointmentDialog } from "./create-appointment-dialog";
 import { RescheduleAppointmentDialog } from "./reschedule-appointment-dialog";
@@ -30,7 +29,7 @@ interface AdminCalendarClientProps {
   appointments: AppointmentDisplayData[];
 }
 
-type ViewMode = "day" | "week" | "month";
+type ViewMode = "day" | "week";
 
 export function AdminCalendarClient({
   initialDate,
@@ -74,7 +73,6 @@ export function AdminCalendarClient({
   // Always use defaults initially (same on server and client)
   // This ensures server and client render identical HTML initially
   const [settings, setSettings] = useState<CalendarSettings>(getInitialSettings);
-  const [settingsReady, setSettingsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDisplayData | null>(null);
@@ -117,7 +115,6 @@ export function AdminCalendarClient({
       merged.selectedBarberIds = barbers.map((b) => b.id);
     }
     setSettings(merged);
-    setSettingsReady(true); // Mark settings as ready
     setIsMounted(true);
   }, [barbers]); // Include barbers in dependencies
 
@@ -128,23 +125,18 @@ export function AdminCalendarClient({
     }
   }, [settings, isMounted]);
 
-  // Filter appointments for current date/week/month
+  // Filter appointments for current date/week
   const filteredAppointments = appointments.filter((apt) => {
     const aptDate = startOfDay(new Date(apt.startTime));
     const currentDateStart = startOfDay(currentDate);
     
     if (viewMode === "day") {
       return isSameDay(aptDate, currentDateStart);
-    } else if (viewMode === "week") {
+    } else {
       // Week view - show appointments from Monday to Sunday of the selected week
       const weekStart = startOfWeek(currentDateStart, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(currentDateStart, { weekStartsOn: 1 });
       return aptDate >= weekStart && aptDate <= weekEnd;
-    } else {
-      // Month view
-      const monthStart = startOfMonth(currentDateStart);
-      const monthEnd = endOfMonth(currentDateStart);
-      return aptDate >= monthStart && aptDate <= monthEnd;
     }
   });
 
@@ -274,32 +266,28 @@ export function AdminCalendarClient({
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden rounded-lg bg-white p-2 text-gray-900">
-        {settingsReady ? (
-          <div className="h-full">
-            <AdminCalendar
-              date={currentDate}
-              barbers={barbers}
-              appointments={filteredAppointments}
-              onAppointmentClick={setSelectedAppointment}
-              onCellClick={(date, barberId) => {
-                setCreateDialogInitialDate(date);
-                setCreateDialogInitialTime(format(date, "HH:mm"));
-                setCreateDialogInitialBarberId(barberId);
-                setCreateDialogOpen(true);
-              }}
-              onAppointmentReschedule={handleAppointmentReschedule}
-              selectedBarberIds={effectiveSelectedBarberIds}
-              timeRange={settings.timeRange}
-              viewMode={viewMode}
-              timeInterval={settings.timeInterval}
-              intervalHeight={settings.intervalHeight}
-              onViewChange={handleViewChange}
-              onDateChange={handleDateChange}
-            />
-          </div>
-        ) : (
-          <CalendarSkeleton />
-        )}
+        <div className="h-full">
+          <AdminCalendar
+            date={currentDate}
+            barbers={barbers}
+            appointments={filteredAppointments}
+            onAppointmentClick={setSelectedAppointment}
+            onCellClick={(date, barberId) => {
+              setCreateDialogInitialDate(date);
+              setCreateDialogInitialTime(format(date, "HH:mm"));
+              setCreateDialogInitialBarberId(barberId);
+              setCreateDialogOpen(true);
+            }}
+            onAppointmentReschedule={handleAppointmentReschedule}
+            selectedBarberIds={effectiveSelectedBarberIds}
+            timeRange={settings.timeRange}
+            viewMode={viewMode}
+            timeInterval={settings.timeInterval}
+            intervalHeight={settings.intervalHeight}
+            onViewChange={handleViewChange}
+            onDateChange={handleDateChange}
+          />
+        </div>
       </div>
 
       {/* Settings Modal */}

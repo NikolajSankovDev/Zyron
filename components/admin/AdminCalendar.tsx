@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { Calendar, dateFnsLocalizer, SlotInfo, View, Views, type ResourceHeaderProps, type EventProps } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek as dateFnsStartOfWeek, getDay } from "date-fns";
@@ -53,10 +53,10 @@ interface AdminCalendarProps {
     start: string; // "HH:mm"
     end: string; // "HH:mm"
   };
-  viewMode?: "day" | "week" | "month";
+  viewMode?: "day" | "week";
   timeInterval?: 15 | 30 | 60;
   intervalHeight?: "small" | "medium" | "large";
-  onViewChange?: (view: "day" | "week" | "month") => void;
+  onViewChange?: (view: "day" | "week") => void;
   onDateChange?: (date: Date) => void;
 }
 
@@ -67,7 +67,6 @@ export type { RescheduleData };
 const viewMap: Record<string, View> = {
   day: Views.DAY,
   week: Views.WEEK,
-  month: Views.MONTH,
 };
 
 type CalendarResource = {
@@ -201,6 +200,7 @@ export function AdminCalendar({
   onDateChange,
 }: AdminCalendarProps) {
   const locale = useLocale();
+  const localeForFormat = useMemo(() => locales[locale as keyof typeof locales] || enUS, [locale]);
 
   const workingHoursConfig = useMemo(() => {
     const defaultStart = toMinutes(DEFAULT_DAY_START, DEFAULT_DAY_START);
@@ -301,8 +301,8 @@ export function AdminCalendar({
   // Handle view change
   const handleViewChange = useCallback((view: View) => {
     if (onViewChange) {
-      const viewString = view === Views.DAY ? "day" : view === Views.WEEK ? "week" : "month";
-      onViewChange(viewString as "day" | "week" | "month");
+      const viewString = view === Views.DAY ? "day" : "week";
+      onViewChange(viewString as "day" | "week");
     }
   }, [onViewChange]);
 
@@ -347,6 +347,64 @@ export function AdminCalendar({
     [workingHoursConfig.openIntervals]
   );
 
+  // Apply inline styles to week view headers (workaround for CSS not applying)
+  useEffect(() => {
+    if (viewMode !== 'week') return;
+    
+    const applyStyles = () => {
+      const headers = document.querySelectorAll('.admin-calendar .rbc-time-header-content > .rbc-row:first-child > .rbc-header');
+      const content = document.querySelector('.admin-calendar .rbc-time-header-content');
+      const row = document.querySelector('.admin-calendar .rbc-time-header-content > .rbc-row:first-child');
+      
+      if (content) {
+        (content as HTMLElement).style.setProperty('display', 'table', 'important');
+        (content as HTMLElement).style.setProperty('width', '100%', 'important');
+        (content as HTMLElement).style.setProperty('table-layout', 'fixed', 'important');
+      }
+      
+      if (row) {
+        (row as HTMLElement).style.setProperty('display', 'table-row', 'important');
+      }
+      
+      headers.forEach((header: Element) => {
+        const el = header as HTMLElement;
+        el.style.setProperty('display', 'table-cell', 'important');
+        el.style.setProperty('height', '48px', 'important');
+        el.style.setProperty('min-height', '48px', 'important');
+        el.style.setProperty('width', 'auto', 'important');
+        el.style.setProperty('vertical-align', 'middle', 'important');
+      });
+    };
+    
+    // Apply immediately and after delays to catch all render cycles
+    applyStyles();
+    const timeouts = [100, 300, 500].map(delay => setTimeout(applyStyles, delay));
+    return () => timeouts.forEach(clearTimeout);
+  }, [viewMode, date]);
+
+  // Week header component - styled exactly like barber headers
+  const WeekHeader = useCallback(({ date, label }: { date: Date; label?: string; localizer?: any }) => {
+    if (!date) {
+      return (
+        <div className="admin-calendar__resource-header-cell">
+          <span className="admin-calendar__resource-name">{label || ""}</span>
+        </div>
+      );
+    }
+    
+    const weekday = format(date, "EEE", { locale: localeForFormat });
+    const dayNumber = format(date, "dd.MM", { locale: localeForFormat });
+    const displayText = `${weekday} ${dayNumber}`;
+
+    return (
+      <div className="admin-calendar__resource-header-cell">
+        <span className="admin-calendar__resource-name">
+          {displayText}
+        </span>
+      </div>
+    );
+  }, [localeForFormat]);
+
   if (visibleBarbers.length === 0) {
     return <div>No barbers selected</div>;
   }
@@ -369,7 +427,7 @@ export function AdminCalendar({
         titleAccessor="title"
         defaultView={viewMap[viewMode]}
         view={viewMap[viewMode]}
-        views={[Views.DAY, Views.WEEK, Views.MONTH]}
+        views={[Views.DAY, Views.WEEK]}
         defaultDate={date}
         date={date}
         step={timeInterval}
@@ -389,11 +447,15 @@ export function AdminCalendar({
         showMultiDayTimes={false}
         formats={{
           eventTimeRangeFormat: () => "",
+          // Don't set dayHeaderFormat - let the custom component handle it
         }}
         components={{
           resourceHeader: ResourceHeader,
           timeGutterHeader: TimeGutterHeader,
           event: CalendarEvent as any,
+          week: { 
+            header: WeekHeader as any,
+          },
         }}
       />
     </div>

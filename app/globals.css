@@ -307,15 +307,10 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* ==========================================================================
-   1. HIDE DATE HEADER ROW AND ALL-DAY CELLS
+   1. HEADER VISIBILITY
    ========================================================================== */
 
-/* Hide the date/time header row (second row in header) */
-.admin-calendar .rbc-time-header-cell {
-  display: none !important;
-}
-
-/* Hide all-day events section */
+/* Hide all-day events section (the date header row stays visible for week view) */
 .admin-calendar .rbc-allday-cell {
   display: none !important;
 }
@@ -354,6 +349,16 @@ body:has([data-radix-scroll-area-viewport]) {
   font-size: 13px;
 }
 
+/* Ensure time gutter header has same height as day headers in week view */
+.admin-calendar .rbc-time-header-gutter {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 48px !important;
+  background: #f9fafb !important;
+  border-right: 1px solid #e5e7eb !important;
+}
+
 /* Barber name text */
 .admin-calendar__resource-name {
   font-weight: 600;
@@ -370,8 +375,41 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* ==========================================================================
-   3. LAYOUT FIXES
+   3. WEEK VIEW HEADER - Day names row (styled like barber headers)
    ========================================================================== */
+
+/* Ensure the week view day header row is visible and uses same styling as barber headers */
+.admin-calendar .rbc-time-header-content > .rbc-row:first-child {
+  display: table-row !important;
+  min-height: 48px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  width: 100% !important;
+}
+
+/* Style .rbc-header cells in week view to match barber headers exactly */
+/* react-big-calendar uses table layout, so we need table-cell display */
+.admin-calendar .rbc-time-header-content > .rbc-row:first-child > .rbc-header {
+  padding: 0 !important;
+  border: none !important;
+  background: #fff !important;
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  width: auto !important;
+  vertical-align: middle !important;
+}
+
+/* Ensure header content is visible and fills the .rbc-header container */
+.admin-calendar .rbc-time-header-content > .rbc-row:first-child > .rbc-header .admin-calendar__resource-header-cell {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 48px !important;
+}
 
 /* Resource row - single horizontal row */
 .admin-calendar .rbc-row-resource {
@@ -394,17 +432,16 @@ body:has([data-radix-scroll-area-viewport]) {
 /* Time header content wrapper */
 .admin-calendar .rbc-time-header-content {
   border-left: 1px solid #e5e7eb !important;
+  display: table !important;
+  width: 100% !important;
+  table-layout: fixed !important;
 }
 
 .admin-calendar .rbc-time-header-content > .rbc-row.rbc-row-resource {
   border-bottom: none !important;
 }
 
-/* Time gutter */
-.admin-calendar .rbc-time-header-gutter {
-  border-right: 1px solid #e5e7eb !important;
-  background: #f9fafb !important;
-}
+/* Time gutter - already styled in section 2 */
 
 /* ==========================================================================
    4. TIME GRID STYLING
