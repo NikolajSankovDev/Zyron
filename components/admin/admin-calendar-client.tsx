@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, isSameDay, startOfDay, endOfWeek, startOfWeek } from "date-fns";
-import { Settings, Plus, User, X } from "lucide-react";
+import { Settings, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -364,19 +364,9 @@ export function AdminCalendarClient({
         <Dialog open={barberDialogOpen} onOpenChange={setBarberDialogOpen}>
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-white text-lg font-semibold flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Select Barber
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-gray-400 hover:text-white"
-                  onClick={() => setBarberDialogOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              <DialogTitle className="text-white text-lg font-semibold flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Select Barber
               </DialogTitle>
             </DialogHeader>
             <div className="py-4">

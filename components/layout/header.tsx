@@ -9,6 +9,7 @@ import LanguageSwitcher from "./language-switcher";
 import { useEffect, useState, useRef } from "react";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useScrollbarFix } from "@/lib/hooks/use-scrollbar-fix";
 
 export default function Header() {
   const t = useTranslations("nav");
@@ -26,6 +27,9 @@ export default function Header() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const userButtonRef = useRef<HTMLButtonElement>(null);
   const [userDropdownCoords, setUserDropdownCoords] = useState({ top: 0, left: 0, width: 0 });
+
+  // Prevent scrollbar layout shift when dropdown opens
+  useScrollbarFix(userDropdownOpen);
 
   useEffect(() => {
     if (!userLoaded || !authLoaded) return;

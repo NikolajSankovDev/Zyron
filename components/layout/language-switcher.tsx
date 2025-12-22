@@ -6,6 +6,7 @@ import { locales } from "@/lib/i18n/config-constants";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
+import { useScrollbarFix } from "@/lib/hooks/use-scrollbar-fix";
 
 const localeNames: Record<string, string> = {
   de: "DE",
@@ -20,6 +21,9 @@ export default function LanguageSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
+  // Prevent scrollbar layout shift when dropdown opens
+  useScrollbarFix(isOpen);
 
   const switchLocale = (newLocale: string) => {
     const segments = pathname.split("/");

@@ -2,8 +2,14 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScrollbarFix } from "@/lib/hooks/use-scrollbar-fix";
 
-const Dialog = DialogPrimitive.Root;
+// Wrapper that applies scrollbar fix
+const Dialog = ({ open, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => {
+  useScrollbarFix(open ?? false);
+  return <DialogPrimitive.Root open={open} {...props} />;
+};
+Dialog.displayName = "Dialog";
 
 const DialogTrigger = DialogPrimitive.Trigger;
 
