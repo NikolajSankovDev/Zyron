@@ -326,9 +326,6 @@ export function AdminCalendarClient({
           appointment={selectedAppointment}
           onClose={() => setSelectedAppointment(null)}
           onDelete={handleDeleteAppointment}
-          onCheckout={(id) => {
-            handleUpdateStatus(id, "COMPLETED");
-          }}
           onMarkArrived={(id) => {
             handleUpdateStatus(id, "ARRIVED");
           }}

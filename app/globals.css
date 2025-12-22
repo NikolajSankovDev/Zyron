@@ -589,59 +589,133 @@ body:has([data-radix-scroll-area-viewport]) {
   overflow: hidden !important;
 }
 
+/* Short appointment wrapper - ensure it can be positioned side-by-side */
+.admin-calendar .calendar-event-wrapper--short {
+  max-width: calc(50% - 2px) !important;
+  min-width: 80px !important;
+}
+
 /* Custom event content container */
 .admin-calendar .calendar-event {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 4px 6px 4px 10px;
+  gap: 0px; /* Remove gap to save space */
+  padding: 2px 4px 2px 8px; /* Reduced padding: 2px top/bottom instead of 4px */
   height: 100%;
   width: 100%;
+  min-height: 28px; /* Minimum height to ensure content is visible */
   border-top: 1px solid rgba(0, 0, 0, 0.25) !important;
   border-right: 1px solid rgba(0, 0, 0, 0.25) !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25) !important;
   border-left: 3px solid !important;
   border-color: rgba(0, 0, 0, 0.25) !important;
   border-radius: 6px;
-  overflow: hidden;
+  overflow: visible !important; /* Change to visible to prevent clipping */
   cursor: pointer;
   transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Responsive padding based on event height - use percentage-based detection */
+/* For events with height >= 5% (taller events in 60min intervals) */
+.admin-calendar .rbc-event[style*="height: 5%"] .calendar-event,
+.admin-calendar .rbc-event[style*="height: 6%"] .calendar-event,
+.admin-calendar .rbc-event[style*="height: 7%"] .calendar-event,
+.admin-calendar .rbc-event[style*="height: 8%"] .calendar-event,
+.admin-calendar .rbc-event[style*="height: 9%"] .calendar-event,
+.admin-calendar .rbc-event[style*="height: 1"] .calendar-event {
+  padding: 4px 6px 4px 10px;
+  gap: 1px;
+}
+
+/* For very tall events (>= 10%) */
+.admin-calendar .rbc-event[style*="height: 1"] .calendar-event {
+  padding: 6px 8px 6px 12px;
+  gap: 2px;
 }
 
 .calendar-event:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-/* Time display - smaller, muted */
+/* Time display - smaller, muted - responsive sizing */
 .calendar-event__time {
-  font-size: 10px;
+  font-size: 9px; /* Fixed smaller size to save space */
   font-weight: 500;
   opacity: 0.8;
-  line-height: 1.2;
+  line-height: 1.1; /* Tighter line height */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
 }
 
-/* Customer name - bold and prominent */
-.calendar-event__customer {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Services list - smaller, muted */
-.calendar-event__services {
+/* Responsive font size for taller events (>= 5%) */
+.admin-calendar .rbc-event[style*="height: 5%"] .calendar-event__time,
+.admin-calendar .rbc-event[style*="height: 6%"] .calendar-event__time,
+.admin-calendar .rbc-event[style*="height: 7%"] .calendar-event__time,
+.admin-calendar .rbc-event[style*="height: 8%"] .calendar-event__time,
+.admin-calendar .rbc-event[style*="height: 9%"] .calendar-event__time {
   font-size: 10px;
+}
+
+.admin-calendar .rbc-event[style*="height: 1"] .calendar-event__time {
+  font-size: 11px;
+}
+
+/* Customer name - bold and prominent - responsive sizing */
+.calendar-event__customer {
+  font-size: 11px; /* Fixed smaller size to save space */
+  font-weight: 700;
+  line-height: 1.2; /* Tighter line height */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive font size for taller events (>= 5%) */
+.admin-calendar .rbc-event[style*="height: 5%"] .calendar-event__customer,
+.admin-calendar .rbc-event[style*="height: 6%"] .calendar-event__customer,
+.admin-calendar .rbc-event[style*="height: 7%"] .calendar-event__customer,
+.admin-calendar .rbc-event[style*="height: 8%"] .calendar-event__customer,
+.admin-calendar .rbc-event[style*="height: 9%"] .calendar-event__customer {
+  font-size: 12px;
+}
+
+.admin-calendar .rbc-event[style*="height: 1"] .calendar-event__customer {
+  font-size: 13px;
+}
+
+/* Services list - smaller, muted - responsive sizing */
+.calendar-event__services {
+  font-size: 9px; /* Fixed smaller size to save space */
   font-weight: 400;
   opacity: 0.75;
-  line-height: 1.2;
+  line-height: 1.1; /* Tighter line height */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive font size for taller events (>= 5%) */
+.admin-calendar .rbc-event[style*="height: 5%"] .calendar-event__services,
+.admin-calendar .rbc-event[style*="height: 6%"] .calendar-event__services,
+.admin-calendar .rbc-event[style*="height: 7%"] .calendar-event__services,
+.admin-calendar .rbc-event[style*="height: 8%"] .calendar-event__services,
+.admin-calendar .rbc-event[style*="height: 9%"] .calendar-event__services {
+  font-size: 10px;
+}
+
+.admin-calendar .rbc-event[style*="height: 1"] .calendar-event__services {
+  font-size: 11px;
 }
 
 /* Status-specific hover states */
@@ -714,6 +788,68 @@ body:has([data-radix-scroll-area-viewport]) {
 .admin-calendar .rbc-event[style*="height: 28px"] .calendar-event__services,
 .admin-calendar .rbc-event[style*="height: 2"] .calendar-event__services {
   display: none;
+}
+
+/* Ensure events container allows for side-by-side layout */
+.admin-calendar .rbc-day-slot .rbc-events-container {
+  position: relative;
+  overflow: visible !important;
+}
+
+/* Overlapping events - react-big-calendar handles positioning, but we ensure they don't stack unnecessarily */
+.admin-calendar .rbc-day-slot .rbc-event {
+  position: absolute !important;
+  min-width: 100px; /* Minimum width to ensure readability */
+  max-width: 100%; /* Can take full width if alone */
+}
+
+/* For short appointments (15min or less), allow them to be narrower so multiple can fit side-by-side */
+.admin-calendar .rbc-day-slot .rbc-event.calendar-event--short {
+  min-width: 80px;
+  max-width: calc(50% - 2px); /* Allow two 15min appointments side-by-side in 1h slot */
+}
+
+/* When multiple short events overlap, react-big-calendar's overlap algorithm will position them side-by-side */
+
+/* Ensure event content is always visible and properly sized */
+.admin-calendar .rbc-event-content {
+  display: flex !important;
+  height: 100% !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  overflow: visible !important; /* Change to visible to prevent content clipping */
+}
+
+/* Ensure calendar-event uses flexbox for proper content layout */
+.admin-calendar .calendar-event {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+}
+
+/* For very short events, ensure minimum content visibility */
+.admin-calendar .rbc-event[style*="height: 2"] .calendar-event,
+.admin-calendar .rbc-event[style*="height: 28px"] .calendar-event {
+  justify-content: center !important;
+  min-height: 28px !important;
+  padding: 1px 3px 1px 6px !important; /* Even smaller padding for very short events */
+}
+
+/* Make sure events don't get cut off */
+.admin-calendar .rbc-time-slot {
+  overflow: visible !important;
+  position: relative;
+}
+
+.admin-calendar .rbc-timeslot-group {
+  overflow: visible !important;
+}
+
+/* Ensure day slot allows for proper event positioning */
+.admin-calendar .rbc-day-slot {
+  position: relative;
+  overflow: visible !important;
 }
 
 /* Month view event styling */

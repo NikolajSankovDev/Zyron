@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { X, Trash2, MoreVertical, UserCheck, CalendarX, Calendar, RotateCcw, Briefcase, FileText, ArrowLeft, Clock, User, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { useScrollbarFix } from "@/lib/hooks/use-scrollbar-fix";
 import type { AppointmentDisplayData } from "@/lib/types/admin-calendar";
 
 interface AppointmentDetailPanelProps {
   appointment: AppointmentDisplayData | null;
   onClose: () => void;
   onDelete?: (appointmentId: string) => void;
-  onCheckout?: (appointmentId: string) => void;
   onMarkArrived?: (appointmentId: string) => void;
   onMarkMissed?: (appointmentId: string) => void;
   onReschedule?: (appointmentId: string) => void;
@@ -33,7 +33,6 @@ export function AppointmentDetailPanel({
   appointment,
   onClose,
   onDelete,
-  onCheckout,
   onMarkArrived,
   onMarkMissed,
   onReschedule,
@@ -42,7 +41,100 @@ export function AppointmentDetailPanel({
   onAddNote,
 }: AppointmentDetailPanelProps) {
   const [activeTab, setActiveTab] = useState("info");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownAlign, setDropdownAlign] = useState<"start" | "end">("end");
+  const [alignOffset, setAlignOffset] = useState(-8);
+  const [dropdownTransform, setDropdownTransform] = useState<string | undefined>(undefined);
+  const dropdownContentRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const t = useTranslations("admin");
+
+  // Prevent scrollbar layout shift when dropdown opens
+  useScrollbarFix(dropdownOpen);
+
+  // #region agent log
+  useEffect(() => {
+    if (!dropdownOpen || !dropdownContentRef.current || !triggerRef.current) return;
+    
+    const content = dropdownContentRef.current;
+    const trigger = triggerRef.current;
+    
+    const adjustWidth = () => {
+      if (!content || !trigger) return;
+      
+      const triggerRect = trigger.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const padding = 16;
+      
+      let maxWidth: number;
+      if (dropdownAlign === "start") {
+        // For start alignment, available space is from trigger left to viewport right
+        maxWidth = viewportWidth - triggerRect.left - padding;
+      } else {
+        // For end alignment, available space is from viewport left to trigger right
+        maxWidth = triggerRect.right - padding;
+      }
+      
+      // Ensure minimum width of 180px and maximum of 224px
+      const newWidth = Math.min(224, Math.max(180, maxWidth));
+      
+      content.style.width = `${newWidth}px`;
+      content.style.maxWidth = `${newWidth}px`;
+      
+      // Also adjust position if still overflowing
+      const rect = content.getBoundingClientRect();
+      if (rect.right > viewportWidth - padding) {
+        const overflow = rect.right - (viewportWidth - padding);
+        const currentLeft = parseFloat(window.getComputedStyle(content).left) || rect.left;
+        content.style.setProperty('left', `${currentLeft - overflow}px`, 'important');
+      }
+      
+      // #region agent log
+      const logData = {
+        location: 'appointment-detail-panel.tsx:adjustWidth',
+        message: 'Width and position adjusted',
+        data: {
+          triggerRect,
+          viewportWidth,
+          dropdownAlign,
+          calculatedMaxWidth: maxWidth,
+          appliedWidth: newWidth,
+          finalRect: content.getBoundingClientRect(),
+          isWithinViewport: content.getBoundingClientRect().right <= viewportWidth - padding,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'post-fix-v5',
+        hypothesisId: 'A'
+      };
+      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logData)
+      }).catch(() => {});
+      // #endregion
+    };
+    
+    // Adjust after Radix positions it
+    const timeout1 = setTimeout(adjustWidth, 10);
+    const timeout2 = setTimeout(adjustWidth, 50);
+    const timeout3 = setTimeout(adjustWidth, 100);
+    
+    // Watch for style changes
+    const observer = new MutationObserver(adjustWidth);
+    observer.observe(content, {
+      attributes: true,
+      attributeFilter: ['style'],
+    });
+    
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+    };
+  }, [dropdownOpen, dropdownAlign, alignOffset]);
+  // #endregion
 
   if (!appointment) return null;
 
@@ -104,10 +196,49 @@ export function AppointmentDetailPanel({
     }
   };
 
+  // Check if status actions are available
+  const canChangeStatus = appointment.status === "BOOKED" || appointment.status === "ARRIVED";
+
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-gray-900 border-l border-gray-700/50 shadow-2xl flex flex-col">
+    <div 
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-gray-900 border-l border-gray-700/50 shadow-2xl flex flex-col overflow-visible"
+      ref={(el) => {
+        if (el) {
+          // #region agent log
+          const logData = {
+            location: 'appointment-detail-panel.tsx:container-ref',
+            message: 'Panel container mounted - checking overflow constraints',
+            data: {
+              containerRect: el.getBoundingClientRect(),
+              containerStyles: {
+                overflow: window.getComputedStyle(el).overflow,
+                overflowX: window.getComputedStyle(el).overflowX,
+                overflowY: window.getComputedStyle(el).overflowY,
+                position: window.getComputedStyle(el).position,
+                zIndex: window.getComputedStyle(el).zIndex,
+              },
+              parentElement: el.parentElement ? {
+                tagName: el.parentElement.tagName,
+                overflow: window.getComputedStyle(el.parentElement).overflow,
+                position: window.getComputedStyle(el.parentElement).position,
+              } : null,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'C'
+          };
+          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(logData)
+          }).catch(() => {});
+          // #endregion
+        }
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700/50 bg-gray-800/40">
+      <div className="flex items-center justify-between p-4 border-b border-gray-700/50 bg-gray-800/40 relative z-10">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
@@ -124,12 +255,170 @@ export function AppointmentDetailPanel({
             </p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
-        >
-          <X className="h-5 w-5 text-gray-400" />
-        </button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu 
+            open={dropdownOpen} 
+            onOpenChange={(open) => {
+              if (open && triggerRef.current) {
+                // Calculate alignment and offset before opening
+                const triggerRect = triggerRef.current.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const dropdownWidth = 224; // w-56 = 224px
+                const padding = 16; // Padding from viewport edges
+                const spaceOnRight = viewportWidth - triggerRect.right;
+                const spaceOnLeft = triggerRect.left;
+                
+                let calculatedOffset = -8;
+                let calculatedAlign: "start" | "end" = "end";
+                
+                if (spaceOnRight < dropdownWidth && spaceOnLeft >= dropdownWidth) {
+                  // Align to start (left), but calculate offset to prevent overflow
+                  calculatedAlign = "start";
+                  const maxRight = viewportWidth - padding;
+                  const calculatedRight = triggerRect.left + dropdownWidth;
+                  if (calculatedRight > maxRight) {
+                    const overflow = calculatedRight - maxRight;
+                    calculatedOffset = 8 - overflow; // Negative offset to shift left
+                    // Also set transform to shift left
+                    setDropdownTransform(`translateX(-${overflow}px)`);
+                  } else {
+                    calculatedOffset = 8;
+                    setDropdownTransform(undefined);
+                  }
+                } else {
+                  // Align to end (right), but calculate offset to prevent overflow
+                  calculatedAlign = "end";
+                  const minLeft = padding;
+                  const calculatedLeft = triggerRect.right - dropdownWidth;
+                  if (calculatedLeft < minLeft) {
+                    const overflow = minLeft - calculatedLeft;
+                    calculatedOffset = -8 + overflow; // Positive offset to shift right
+                    setDropdownTransform(`translateX(${overflow}px)`);
+                  } else {
+                    calculatedOffset = -8;
+                    setDropdownTransform(undefined);
+                  }
+                }
+                
+                // #region agent log
+                const logData = {
+                  location: 'appointment-detail-panel.tsx:onOpenChange',
+                  message: 'Calculating dropdown position',
+                  data: {
+                    viewportWidth,
+                    triggerRect,
+                    spaceOnRight,
+                    spaceOnLeft,
+                    dropdownWidth,
+                    calculatedAlign,
+                    calculatedOffset,
+                    expectedRight: calculatedAlign === "start" ? triggerRect.left + dropdownWidth + (calculatedOffset - 8) : triggerRect.right - dropdownWidth + (calculatedOffset + 8),
+                    maxRight: viewportWidth - padding,
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'post-fix-v2',
+                  hypothesisId: 'A'
+                };
+                fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(logData)
+                }).catch(() => {});
+                // #endregion
+                
+                setDropdownAlign(calculatedAlign);
+                setAlignOffset(calculatedOffset);
+              }
+              setDropdownOpen(open);
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <button 
+                ref={triggerRef}
+                className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
+              >
+                <MoreVertical className="h-5 w-5 text-gray-400" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              ref={dropdownContentRef}
+              align={dropdownAlign}
+              side="bottom"
+              sideOffset={8}
+              alignOffset={alignOffset}
+              className="bg-gray-800 border-gray-700/50 rounded-xl w-56 max-h-[min(400px,calc(100vh-2rem))] overflow-y-auto z-[9999] shadow-2xl"
+              style={{
+                maxWidth: 'min(224px, calc(100vw - 2rem))',
+                position: 'fixed',
+                ...(dropdownTransform && { transform: dropdownTransform }),
+              }}
+            >
+              {canChangeStatus && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => onMarkArrived?.(appointment.id)}
+                    className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+                  >
+                    <UserCheck className="h-4 w-4 mr-2 text-green-400" />
+                    Mark arrived
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onMarkMissed?.(appointment.id)}
+                    className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+                  >
+                    <CalendarX className="h-4 w-4 mr-2 text-red-400" />
+                    Mark missed
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-700/50" />
+                </>
+              )}
+              <DropdownMenuItem
+                onClick={() => onReschedule?.(appointment.id)}
+                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+              >
+                <Calendar className="h-4 w-4 mr-2 text-primary" />
+                Reschedule
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onBookAgain?.(appointment.id)}
+                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+              >
+                <RotateCcw className="h-4 w-4 mr-2 text-blue-400" />
+                Book again
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gray-700/50" />
+              <DropdownMenuItem
+                onClick={() => onAddService?.(appointment.id)}
+                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+              >
+                <Briefcase className="h-4 w-4 mr-2" />
+                Add service
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onAddNote?.(appointment.id)}
+                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Add note
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gray-700/50" />
+              <DropdownMenuItem
+                onClick={() => onDelete?.(appointment.id)}
+                className="text-red-400 focus:bg-red-500/10 focus:text-red-300 rounded-lg cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete appointment
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
       </div>
 
       {/* Client Info */}
@@ -158,12 +447,6 @@ export function AppointmentDetailPanel({
               className="flex-1 rounded-lg data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400"
             >
               Info
-            </TabsTrigger>
-            <TabsTrigger 
-              value="payment" 
-              className="flex-1 rounded-lg data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400"
-            >
-              Payment
             </TabsTrigger>
             <TabsTrigger 
               value="details" 
@@ -214,40 +497,46 @@ export function AppointmentDetailPanel({
             </div>
           </TabsContent>
 
-          {/* Payment Tab */}
-          <TabsContent value="payment" className="space-y-4 mt-0">
-            <div className="text-center py-12 px-4">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-800/50 flex items-center justify-center">
-                <Clock className="h-8 w-8 text-gray-500" />
-              </div>
-              <p className="text-gray-300 font-medium">Payment Processing</p>
-              <p className="text-sm text-gray-500 mt-2">Payment interface coming soon</p>
-            </div>
-          </TabsContent>
-
           {/* Details Tab */}
           <TabsContent value="details" className="space-y-4 mt-0">
             <div className="space-y-4">
+              {/* Quick Actions - Status Changes */}
+              {canChangeStatus && (
+                <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
+                  <p className="text-sm text-gray-400 mb-3">Quick Actions</p>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => onMarkArrived?.(appointment.id)}
+                      variant="outline"
+                      className="w-full justify-start border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300"
+                    >
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Mark as Arrived
+                    </Button>
+                    <Button
+                      onClick={() => onMarkMissed?.(appointment.id)}
+                      variant="outline"
+                      className="w-full justify-start border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      <CalendarX className="h-4 w-4 mr-2" />
+                      Mark as Missed
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Status */}
               <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
                 <p className="text-sm text-gray-400 mb-2">Current Status</p>
                 {getStatusBadge(appointment.status)}
               </div>
 
-              {/* Notes */}
-              {appointment.notes && (
-                <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <p className="text-sm text-gray-400">Notes</p>
-                  </div>
-                  <p className="text-white">{appointment.notes}</p>
-                </div>
-              )}
-
               {/* Services Breakdown */}
               <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
-                <p className="text-sm text-gray-400 mb-3">{t("services")}</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <Briefcase className="h-4 w-4 text-gray-400" />
+                  <p className="text-sm text-gray-400">{t("services")}</p>
+                </div>
                 <div className="space-y-2">
                   {appointment.services.map((service) => (
                     <div key={service.id} className="flex items-center justify-between py-2 border-b border-gray-700/30 last:border-0">
@@ -281,91 +570,68 @@ export function AppointmentDetailPanel({
                   )}
                 </div>
               </div>
+
+              {/* Notes */}
+              {appointment.notes ? (
+                <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <p className="text-sm text-gray-400">Notes</p>
+                  </div>
+                  <p className="text-white">{appointment.notes}</p>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <p className="text-sm text-gray-400">Notes</p>
+                  </div>
+                  <p className="text-sm text-gray-500 italic">No notes added</p>
+                </div>
+              )}
+
+              {/* Additional Actions */}
+              <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
+                <p className="text-sm text-gray-400 mb-3">Additional Actions</p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => onReschedule?.(appointment.id)}
+                    variant="outline"
+                    className="w-full justify-start border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Reschedule Appointment
+                  </Button>
+                  <Button
+                    onClick={() => onBookAgain?.(appointment.id)}
+                    variant="outline"
+                    className="w-full justify-start border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Book Again
+                  </Button>
+                  <Button
+                    onClick={() => onAddService?.(appointment.id)}
+                    variant="outline"
+                    className="w-full justify-start border-gray-600/30 text-gray-300 hover:bg-gray-700/50 hover:text-white"
+                  >
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Add Service
+                  </Button>
+                  <Button
+                    onClick={() => onAddNote?.(appointment.id)}
+                    variant="outline"
+                    className="w-full justify-start border-gray-600/30 text-gray-300 hover:bg-gray-700/50 hover:text-white"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+              </div>
             </div>
           </TabsContent>
         </div>
       </Tabs>
-
-      {/* Footer Actions */}
-      <div className="border-t border-gray-700/50 p-4 space-y-3 bg-gray-800/40">
-        <div className="flex items-center justify-between pb-3 border-b border-gray-700/30">
-          <span className="text-sm text-gray-400">Balance to pay</span>
-          <span className="text-xl font-bold text-white">€{appointment.totalPrice.toFixed(2)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete?.(appointment.id)}
-            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl h-11 w-11"
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-          <Button
-            onClick={() => onCheckout?.(appointment.id)}
-            className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-11 font-semibold shadow-lg shadow-primary/20"
-          >
-            Checkout
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl h-11 w-11"
-              >
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700/50 rounded-xl w-48">
-              <DropdownMenuItem
-                onClick={() => onMarkArrived?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <UserCheck className="h-4 w-4 mr-2 text-green-400" />
-                Mark arrived
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onMarkMissed?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <CalendarX className="h-4 w-4 mr-2 text-red-400" />
-                Mark missed
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700/50" />
-              <DropdownMenuItem
-                onClick={() => onReschedule?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <Calendar className="h-4 w-4 mr-2 text-primary" />
-                Reschedule
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onBookAgain?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <RotateCcw className="h-4 w-4 mr-2 text-blue-400" />
-                Book again
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700/50" />
-              <DropdownMenuItem
-                onClick={() => onAddService?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Add service
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onAddNote?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Add note
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
     </div>
   );
 }

@@ -143,9 +143,43 @@ const CalendarEvent = ({ event }: EventProps<CalendarEventData>) => {
   const services = appointment.services.map((s) => s.serviceName).join(", ");
   const statusColors = STATUS_COLORS[appointment.status] || STATUS_COLORS.BOOKED;
 
+  // Calculate duration in minutes
+  const durationMinutes = Math.round((event.end.getTime() - event.start.getTime()) / (1000 * 60));
+  
+  // Determine if this is a short appointment (15 minutes or less)
+  const isShortAppointment = durationMinutes <= 15;
+
+  const eventRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    
+    // Wait for layout to settle
+    setTimeout(() => {
+      const rbcEvent = node.closest('.rbc-event') as HTMLElement;
+      if (!rbcEvent) return;
+      
+      const eventHeight = rbcEvent.offsetHeight;
+      
+      // Force apply correct padding and overflow based on event height
+      // For 60min intervals, events are ~39px tall (6.25%)
+      if (eventHeight <= 45) {
+        // Small events - use minimal padding
+        node.style.setProperty('padding', '2px 4px 2px 8px', 'important');
+        node.style.setProperty('gap', '0px', 'important');
+      } else {
+        // Larger events - can use more padding
+        node.style.setProperty('padding', '4px 6px 4px 10px', 'important');
+        node.style.setProperty('gap', '1px', 'important');
+      }
+      
+      // Always set overflow to visible
+      node.style.setProperty('overflow', 'visible', 'important');
+    }, 100);
+  }, []);
+
   return (
     <div
-      className="calendar-event"
+      ref={eventRef}
+      className={`calendar-event ${isShortAppointment ? 'calendar-event--short' : ''}`}
       style={{
         borderTop: "1px solid rgba(0, 0, 0, 0.25)",
         borderRight: "1px solid rgba(0, 0, 0, 0.25)",
@@ -176,13 +210,22 @@ const eventPropGetter = (event: CalendarEventData) => {
   if (!appointment) return {};
 
   const statusColors = STATUS_COLORS[appointment.status] || STATUS_COLORS.BOOKED;
+  
+  // Calculate duration in minutes
+  const durationMinutes = Math.round((event.end.getTime() - event.start.getTime()) / (1000 * 60));
+  const isShortAppointment = durationMinutes <= 15;
 
   return {
-    className: `calendar-event-wrapper calendar-event-wrapper--${appointment.status.toLowerCase()}`,
+    className: `calendar-event-wrapper calendar-event-wrapper--${appointment.status.toLowerCase()} ${isShortAppointment ? 'calendar-event-wrapper--short' : ''}`,
     style: {
       backgroundColor: statusColors.bg,
       borderColor: statusColors.border,
       color: statusColors.text,
+      // For short appointments, set a max-width to allow side-by-side layout
+      ...(isShortAppointment && {
+        maxWidth: 'calc(50% - 2px)',
+        minWidth: '80px',
+      }),
     },
   };
 };
@@ -546,153 +589,103 @@ export function AdminCalendar({
     };
   }, [viewMode, date, appointments]);
 
-  // #region agent log
-  // Inspect time label elements and their styles + Apply inline fix
+  // Handle overlapping short appointments - ensure they're positioned side-by-side
   useEffect(() => {
-    const inspectTimeLabels = () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Inspecting and fixing time labels',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
+    const adjustOverlappingShortEvents = () => {
+      // Find all day slots
+      const daySlots = document.querySelectorAll('.admin-calendar .rbc-day-slot');
       
-      // Apply inline style fix for time labels
-      const timeLabels = document.querySelectorAll('.admin-calendar .rbc-time-gutter .rbc-label');
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Applying inline fix',data:{labelCount:timeLabels.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'FIX'})}).catch(()=>{});
-      // #endregion
-      
-      timeLabels.forEach((label) => {
-        const el = label as HTMLElement;
-        const computedColor = window.getComputedStyle(el).color;
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Before inline fix',data:{textContent:el.textContent?.substring(0,10),computedColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'FIX'})}).catch(()=>{});
-        // #endregion
+      daySlots.forEach((daySlot) => {
+        const eventsContainer = daySlot.querySelector('.rbc-events-container');
+        if (!eventsContainer) return;
         
-        // Apply dark color inline
-        el.style.setProperty('color', '#1f2937', 'important');
+        const allEvents = Array.from(eventsContainer.querySelectorAll('.rbc-event')) as HTMLElement[];
         
-        const afterColor = window.getComputedStyle(el).color;
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'After inline fix',data:{textContent:el.textContent?.substring(0,10),computedColor:afterColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'FIX'})}).catch(()=>{});
-        // #endregion
-      });
-      
-      const timeGutter = document.querySelector('.admin-calendar .rbc-time-gutter');
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Time gutter found',data:{exists:!!timeGutter,className:timeGutter?.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      // Try different possible selectors for time labels
-      const selectors = [
-        '.admin-calendar .rbc-time-gutter .rbc-label',
-        '.admin-calendar .rbc-time-gutter .rbc-timeslot-group .rbc-label',
-        '.admin-calendar .rbc-time-gutter .rbc-time-slot .rbc-label',
-        '.admin-calendar .rbc-time-gutter .rbc-label',
-      ];
-      
-        selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Elements found with selector',data:{selector,count:elements.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
+        // Apply correct padding and overflow to all events
+        allEvents.forEach((rbcEvent) => {
+          const eventHeight = rbcEvent.offsetHeight;
+          const calendarEvent = rbcEvent.querySelector('.calendar-event') as HTMLElement;
+          
+          if (calendarEvent) {
+            if (eventHeight <= 45) {
+              calendarEvent.style.setProperty('padding', '2px 4px 2px 8px', 'important');
+              calendarEvent.style.setProperty('gap', '0px', 'important');
+            } else {
+              calendarEvent.style.setProperty('padding', '4px 6px 4px 10px', 'important');
+              calendarEvent.style.setProperty('gap', '1px', 'important');
+            }
+            calendarEvent.style.setProperty('overflow', 'visible', 'important');
+          }
+        });
         
-        if (elements.length > 0) {
-          // Check both closed and open slots
-          const closedSlot = Array.from(elements).find((el:Element) => {
-            const parent = (el as HTMLElement).parentElement;
-            return parent?.classList.contains('admin-calendar__slot--closed');
-          });
-          const openSlot = Array.from(elements).find((el:Element) => {
-            const parent = (el as HTMLElement).parentElement;
-            return parent && !parent.classList.contains('admin-calendar__slot--closed');
-          });
-          
-          // Check closed slot if exists
-          if (closedSlot) {
-            const el = closedSlot as HTMLElement;
-            const computedStyle = window.getComputedStyle(el);
-            const parent = el.parentElement;
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Closed slot label styles',data:{selector,color:computedStyle.color,textContent:el.textContent?.substring(0,10),parentClass:parent?.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
+        const shortEvents = Array.from(eventsContainer.querySelectorAll('.rbc-event.calendar-event-wrapper--short')) as HTMLElement[];
+        
+        if (shortEvents.length <= 1) return;
+        
+        // Group events by their top position (same time slot)
+        const eventsByTop = new Map<number, HTMLElement[]>();
+        shortEvents.forEach((event) => {
+          const top = Math.round(event.offsetTop);
+          if (!eventsByTop.has(top)) {
+            eventsByTop.set(top, []);
           }
-          
-          // Check open slot if exists (this is what user is complaining about)
-          if (openSlot) {
-            const el = openSlot as HTMLElement;
-            const computedStyle = window.getComputedStyle(el);
-            const color = computedStyle.color;
-            const bgColor = computedStyle.backgroundColor;
-            const allClasses = Array.from(el.classList);
-            const inlineStyle = el.style.cssText;
-            const parent = el.parentElement;
-            
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'OPEN slot label styles',data:{selector,color,bgColor,classes:allClasses,inlineStyle,textContent:el.textContent?.substring(0,10),parentClass:parent?.className,parentColor:parent?window.getComputedStyle(parent).color:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-          } else {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'No open slot found',data:{selector,firstElText:((elements[0] as HTMLElement).textContent?.substring(0,10))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
+          eventsByTop.get(top)!.push(event);
+        });
+        
+        // For each group of overlapping events, adjust their width
+        eventsByTop.forEach((events) => {
+          if (events.length > 1) {
+            const widthPercent = Math.floor(100 / events.length);
+            events.forEach((event) => {
+              // Only adjust if react-big-calendar hasn't set a specific width
+              const currentWidth = event.style.width;
+              if (!currentWidth || currentWidth === '100%') {
+                event.style.width = `calc(${widthPercent}% - 2px)`;
+                event.style.maxWidth = `calc(${widthPercent}% - 2px)`;
+              }
+            });
           }
-          
-          // Also check first element as before
-          const firstEl = elements[0] as HTMLElement;
-          const computedStyle = window.getComputedStyle(firstEl);
-          const color = computedStyle.color;
-          const bgColor = computedStyle.backgroundColor;
-          const allClasses = Array.from(firstEl.classList);
-          const inlineStyle = firstEl.style.cssText;
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Time label styles',data:{selector,color,bgColor,classes:allClasses,inlineStyle,textContent:firstEl.textContent?.substring(0,10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
-          
-          // Check parent elements for inherited styles
-          let parent = firstEl.parentElement;
-          let depth = 0;
-          while (parent && depth < 5) {
-            const parentColor = window.getComputedStyle(parent).color;
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Parent element style',data:{depth,parentTag:parent.tagName,parentClass:parent.className,parentColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
-            parent = parent.parentElement;
-            depth++;
-          }
-        }
+        });
       });
-      
-      // Check if our CSS rule exists
-      const allStyles = Array.from(document.styleSheets).flatMap(sheet => {
-        try {
-          return Array.from(sheet.cssRules || []);
-        } catch {
-          return [];
-        }
-      });
-      const ourRule = allStyles.find(rule => {
-        if (rule instanceof CSSStyleRule) {
-          return rule.selectorText?.includes('.admin-calendar .rbc-time-gutter .rbc-label');
-        }
-        return false;
-      });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'CSS rule check',data:{ruleExists:!!ourRule,selector:ourRule instanceof CSSStyleRule ? ourRule.selectorText : null,style:ourRule instanceof CSSStyleRule ? ourRule.style.cssText : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      
-      // Also check all elements in time gutter to see structure
-      if (timeGutter) {
-        const allChildren = Array.from(timeGutter.querySelectorAll('*'));
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:inspectTimeLabels',message:'Time gutter structure',data:{totalChildren:allChildren.length,firstFewElements:allChildren.slice(0,5).map((el:Element)=>({tag:el.tagName,class:el.className,text:el.textContent?.substring(0,15)?.trim()}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-      }
     };
     
-    // Run inspection after delays to ensure DOM is ready
-    const timeouts = [200, 500, 1000].map(delay => setTimeout(inspectTimeLabels, delay));
+    // Run after a short delay to ensure react-big-calendar has positioned events
+    const timeout = setTimeout(adjustOverlappingShortEvents, 100);
+    
+    // Also run when events change
+    const observer = new MutationObserver(() => {
+      setTimeout(adjustOverlappingShortEvents, 50);
+    });
+    
+    const calendar = document.querySelector('.admin-calendar');
+    if (calendar) {
+      observer.observe(calendar, {
+        childList: true,
+        subtree: true,
+      });
+    }
+    
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, [viewMode, date, appointments, timeInterval]);
+
+  // Apply inline style fix for time labels to ensure they're visible
+  useEffect(() => {
+    const applyTimeLabelFix = () => {
+      const timeLabels = document.querySelectorAll('.admin-calendar .rbc-time-gutter .rbc-label');
+      timeLabels.forEach((label) => {
+        const el = label as HTMLElement;
+        // Apply dark color inline to ensure visibility
+        el.style.setProperty('color', '#1f2937', 'important');
+      });
+    };
+    
+    // Run after delays to ensure DOM is ready
+    const timeouts = [200, 500, 1000].map(delay => setTimeout(applyTimeLabelFix, delay));
     return () => timeouts.forEach(clearTimeout);
   }, [viewMode, date, timeInterval]);
-  // #endregion
 
   // Week header component - styled exactly like barber headers
   const WeekHeader = useCallback(({ date, label }: { date: Date; label?: string; localizer?: any }) => {

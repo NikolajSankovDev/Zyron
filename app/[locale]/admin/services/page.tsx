@@ -1,30 +1,17 @@
+import { getSession } from "@/lib/auth/get-session";
 import { redirect } from "next/navigation";
 import { safePrismaQuery, prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getTranslations, getLocale } from "next-intl/server";
-import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
 
-export default async function ServicesPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  // Await searchParams to prevent serialization errors
-  await searchParams;
-  
+export default async function ServicesPage() {
+  const session = await getSession();
   const t = await getTranslations("admin");
   const tCommon = await getTranslations("common");
   const locale = await getLocale();
 
-  // Get current user from Prisma (synced from Clerk)
-  const user = await getCurrentPrismaUser();
-
-  if (!user) {
-    redirect(`/${locale}/auth/sign-in`);
-  }
-
-  if (!["ADMIN", "BARBER"].includes(user.role)) {
+  if (!session?.user || !["ADMIN", "BARBER"].includes(session.user.role)) {
     redirect(`/${locale}`);
   }
 
@@ -49,8 +36,8 @@ export default async function ServicesPage({
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6 space-y-6 h-full flex flex-col">
+      <div className="flex justify-between items-center flex-shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-white">{t("services")}</h1>
           <p className="text-gray-400 mt-1">{t("manageServiceOfferings")}</p>
@@ -58,11 +45,11 @@ export default async function ServicesPage({
         <Button className="bg-primary hover:bg-primary/90">{t("addService")}</Button>
       </div>
 
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader>
+      <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
+        <CardHeader className="flex-shrink-0">
           <CardTitle className="text-white">{t("allServices")}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto min-h-0">
           {services.length === 0 ? (
             <p className="text-gray-400">
               {t("noServicesFound")} {!process.env.DATABASE_URL && "Database not connected."}
