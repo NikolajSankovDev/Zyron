@@ -51,14 +51,15 @@ export async function createAppointment(data: CreateAppointmentData) {
       
       return await prisma.$transaction(async (tx) => {
         // Check if slot is still available
+        // Allow appointments that start exactly when a previous one ends (back-to-back)
         const conflictingAppointment = await tx.appointment.findFirst({
           where: {
             barberId,
             startTime: {
-              lte: endTime,
+              lt: endTime,  // Existing appointment starts before new appointment ends
             },
             endTime: {
-              gte: startTime,
+              gt: startTime,  // Existing appointment ends after new appointment starts
             },
             status: {
               not: "CANCELED",

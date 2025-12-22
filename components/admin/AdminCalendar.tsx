@@ -147,7 +147,10 @@ const CalendarEvent = ({ event }: EventProps<CalendarEventData>) => {
     <div
       className="calendar-event"
       style={{
-        borderLeftColor: statusColors.border,
+        borderTop: "1px solid rgba(0, 0, 0, 0.25)",
+        borderRight: "1px solid rgba(0, 0, 0, 0.25)",
+        borderBottom: "1px solid rgba(0, 0, 0, 0.25)",
+        borderLeft: `3px solid ${statusColors.border}`,
         backgroundColor: statusColors.bg,
         color: statusColors.text,
       }}
@@ -492,6 +495,56 @@ export function AdminCalendar({
     const timeouts = [100, 300, 500].map(delay => setTimeout(applyStyles, delay));
     return () => timeouts.forEach(clearTimeout);
   }, [viewMode, date]);
+
+  // Apply blue focus box via JavaScript to ensure it's visible
+  useEffect(() => {
+    const applyFocusBox = () => {
+      const events = document.querySelectorAll('.admin-calendar .rbc-event');
+      events.forEach((eventEl) => {
+        const el = eventEl as HTMLElement;
+        const isFocused = el === document.activeElement || el.matches(':focus');
+        
+        if (isFocused) {
+          // Remove outline and apply box-shadow directly
+          el.style.setProperty('outline', 'none', 'important');
+          el.style.setProperty('box-shadow', '0 0 0 2px #3B82F6', 'important');
+          el.style.setProperty('overflow', 'visible', 'important');
+          el.style.setProperty('z-index', '10', 'important');
+          el.style.setProperty('position', 'relative', 'important');
+        } else {
+          // Reset when not focused
+          el.style.removeProperty('box-shadow');
+          el.style.removeProperty('overflow');
+          el.style.removeProperty('z-index');
+          el.style.removeProperty('position');
+        }
+      });
+    };
+    
+    // Run on mount and periodically
+    applyFocusBox();
+    const interval = setInterval(applyFocusBox, 100);
+    
+    // Listen for focus events
+    const handleFocus = () => {
+      setTimeout(() => applyFocusBox(), 50);
+    };
+    const calendar = document.querySelector('.admin-calendar');
+    if (calendar) {
+      calendar.addEventListener('focusin', handleFocus);
+      calendar.addEventListener('focusout', handleFocus);
+      calendar.addEventListener('click', handleFocus);
+    }
+    
+    return () => {
+      clearInterval(interval);
+      if (calendar) {
+        calendar.removeEventListener('focusin', handleFocus);
+        calendar.removeEventListener('focusout', handleFocus);
+        calendar.removeEventListener('click', handleFocus);
+      }
+    };
+  }, [viewMode, date, appointments]);
 
   // #region agent log
   // Inspect time label elements and their styles + Apply inline fix

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format, setHours, setMinutes, startOfDay } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { createAdminAppointmentAction } from "@/lib/actions/admin";
 import { useTranslations } from "next-intl";
 import type { BarberDisplayData } from "@/lib/types/admin-calendar";
+
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
 
 interface Service {
   id: number;
@@ -63,6 +70,15 @@ export function CreateAppointmentDialog({
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("admin");
 
+  // Customer search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Customer[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load services
   useEffect(() => {
     if (open) {
@@ -75,6 +91,109 @@ export function CreateAppointmentDialog({
         });
     }
   }, [open]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setCustomerName("");
+      setCustomerEmail("");
+      setCustomerPhone("");
+      setSearchQuery("");
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setSelectedCustomer(null);
+      setSelectedServiceIds([]);
+      setNotes("");
+      setError(null);
+    }
+  }, [open]);
+
+  // Search customers with debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/customers/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await response.json();
+        setSearchResults(data.customers || []);
+        setShowSearchResults(true);
+      } catch (err) {
+        console.error("Failed to search customers:", err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Handle click outside search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerName(customer.name);
+    setCustomerEmail(customer.email);
+    setCustomerPhone(customer.phone || "");
+    setSearchQuery(customer.name);
+    setShowSearchResults(false);
+    setSearchResults([]);
+  };
+
+  // Handle customer name change
+  const handleCustomerNameChange = (value: string) => {
+    setSearchQuery(value);
+    setCustomerName(value);
+    
+    // If customer was selected and user is editing, clear selection
+    if (selectedCustomer && value !== selectedCustomer.name) {
+      setSelectedCustomer(null);
+      setCustomerEmail("");
+      setCustomerPhone("");
+    }
+  };
+
+  // Clear customer selection
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerName("");
+    setCustomerEmail("");
+    setCustomerPhone("");
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearchResults(false);
+  };
 
   const handleServiceToggle = (serviceId: number) => {
     setSelectedServiceIds((prev) =>
@@ -124,13 +243,8 @@ export function CreateAppointmentDialog({
       setError(result.error);
       setLoading(false);
     } else {
-      // Reset form
-      setCustomerName("");
-      setCustomerEmail("");
-      setCustomerPhone("");
-      setSelectedServiceIds([]);
-      setNotes("");
-      setError(null);
+      // Reset form (handled by useEffect when dialog closes)
+      setLoading(false);
       onOpenChange(false);
       onSuccess?.();
     }
@@ -147,18 +261,66 @@ export function CreateAppointmentDialog({
           {/* Customer Information */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">Customer Information</h3>
-            <div>
+            <div className="relative" ref={searchContainerRef}>
               <Label htmlFor="customerName" className="text-gray-400 text-sm mb-1 block">
                 Name *
               </Label>
-              <Input
-                id="customerName"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                required
-                className="bg-gray-800 border-gray-700 text-white"
-                placeholder="Customer name"
-              />
+              <div className="relative">
+                <Input
+                  id="customerName"
+                  value={customerName}
+                  onChange={(e) => handleCustomerNameChange(e.target.value)}
+                  onFocus={() => {
+                    if (searchResults.length > 0) {
+                      setShowSearchResults(true);
+                    }
+                  }}
+                  required
+                  className="bg-gray-800 border-gray-700 text-white pr-10"
+                  placeholder="Type name or email to search..."
+                />
+                {selectedCustomer && (
+                  <button
+                    type="button"
+                    onClick={handleClearCustomer}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    aria-label="Clear customer selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Search Results Dropdown */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {isSearching && (
+                    <div className="p-3 text-sm text-gray-400 text-center">
+                      Searching...
+                    </div>
+                  )}
+                  {!isSearching && searchResults.map((customer) => (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      onClick={() => handleCustomerSelect(customer)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-b-0"
+                    >
+                      <div className="text-white font-medium">{customer.name}</div>
+                      <div className="text-gray-400 text-sm">{customer.email}</div>
+                      {customer.phone && (
+                        <div className="text-gray-500 text-xs mt-1">{customer.phone}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {showSearchResults && !isSearching && searchResults.length === 0 && searchQuery.trim().length >= 2 && (
+                <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg p-3">
+                  <div className="text-gray-400 text-sm text-center">No customers found</div>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="customerEmail" className="text-gray-400 text-sm mb-1 block">
@@ -170,7 +332,8 @@ export function CreateAppointmentDialog({
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 required
-                className="bg-gray-800 border-gray-700 text-white"
+                disabled={!!selectedCustomer}
+                className="bg-gray-800 border-gray-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="customer@example.com"
               />
             </div>
@@ -183,7 +346,8 @@ export function CreateAppointmentDialog({
                 type="tel"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                disabled={!!selectedCustomer}
+                className="bg-gray-800 border-gray-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="+1 234 567 8900"
               />
             </div>

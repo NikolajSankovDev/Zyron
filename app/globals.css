@@ -558,11 +558,31 @@ body:has([data-radix-scroll-area-viewport]) {
   background: transparent !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   overflow: hidden !important;
+  outline: none !important;
 }
 
+/* Fix blue focus box - use box-shadow with spread to create visible border on all sides */
 .admin-calendar .rbc-event:focus {
-  outline: 2px solid #3B82F6 !important;
-  outline-offset: 1px !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px #3B82F6 !important;
+  position: relative !important;
+  z-index: 10 !important;
+  overflow: visible !important;
+}
+
+/* Ensure parent containers don't clip the box-shadow */
+.admin-calendar .rbc-time-content {
+  overflow-x: visible !important;
+  overflow-y: auto !important;
+}
+
+.admin-calendar .rbc-day-slot {
+  overflow: visible !important;
+}
+
+/* Ensure time slot groups don't clip */
+.admin-calendar .rbc-timeslot-group {
+  overflow: visible !important;
 }
 
 /* Event wrapper for status-based colors */
@@ -572,18 +592,22 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* Custom event content container */
-.calendar-event {
+.admin-calendar .calendar-event {
   display: flex;
   flex-direction: column;
   gap: 1px;
   padding: 4px 6px 4px 10px;
   height: 100%;
   width: 100%;
-  border-left: 3px solid;
+  border-top: 1px solid rgba(0, 0, 0, 0.25) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.25) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25) !important;
+  border-left: 3px solid !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
   border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
 }
 
 .calendar-event:hover {
