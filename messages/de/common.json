@@ -279,7 +279,14 @@
     "cancel": "Abbrechen",
     "confirm": "Bestätigen",
     "save": "Speichern",
-    "saving": "Wird gespeichert..."
+    "saving": "Wird gespeichert...",
+    "actions": "Aktionen",
+    "deleteCustomerConfirmTitle": "Möchten Sie diesen Kunden wirklich löschen?",
+    "deleteCustomerConfirmBody": "Dies wird {name} ({email}) dauerhaft aus der Datenbank und Clerk löschen. Alle zugehörigen Termine werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteCustomerConfirmAction": "Kunde löschen",
+    "deleteCustomerProcessing": "Wird gelöscht...",
+    "searchCustomersPlaceholder": "Suche nach Name, E-Mail oder Telefon...",
+    "noCustomersMatchSearch": "Keine Kunden entsprechen Ihrer Suche"
   },
   "account": {
     "welcome": "Willkommen",

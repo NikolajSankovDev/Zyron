@@ -292,7 +292,14 @@
     "cancel": "Отмена",
     "confirm": "Подтвердить",
     "save": "Сохранить",
-    "saving": "Сохранение..."
+    "saving": "Сохранение...",
+    "actions": "Действия",
+    "deleteCustomerConfirmTitle": "Вы уверены, что хотите удалить этого клиента?",
+    "deleteCustomerConfirmBody": "Это навсегда удалит {name} ({email}) из базы данных и Clerk. Все связанные записи также будут удалены. Это действие нельзя отменить.",
+    "deleteCustomerConfirmAction": "Удалить клиента",
+    "deleteCustomerProcessing": "Удаление...",
+    "searchCustomersPlaceholder": "Поиск по имени, email или телефону...",
+    "noCustomersMatchSearch": "Нет клиентов, соответствующих вашему запросу"
   },
   "account": {
     "welcome": "Добро пожаловать",

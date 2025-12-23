@@ -30,6 +30,12 @@ export async function GET(request: NextRequest) {
                 mode: "insensitive",
               },
             },
+            {
+              phone: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            },
           ],
         },
         select: {

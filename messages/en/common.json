@@ -292,7 +292,14 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "save": "Save",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "actions": "Actions",
+    "deleteCustomerConfirmTitle": "Are you sure you want to delete this customer?",
+    "deleteCustomerConfirmBody": "This will permanently delete {name} ({email}) from the database and Clerk. All associated appointments will also be deleted. This action cannot be undone.",
+    "deleteCustomerConfirmAction": "Delete Customer",
+    "deleteCustomerProcessing": "Deleting...",
+    "searchCustomersPlaceholder": "Search by name, email, or phone...",
+    "noCustomersMatchSearch": "No customers match your search"
   },
   "account": {
     "welcome": "Welcome",

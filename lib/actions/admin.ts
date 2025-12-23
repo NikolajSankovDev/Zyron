@@ -6,6 +6,8 @@ import { z } from "zod";
 import { prisma, safePrismaQuery } from "@/lib/prisma";
 import { locales } from "@/lib/i18n/config-constants";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
+import { logger } from "@/lib/logger";
+import { deleteClerkUser, revokeClerkUserSessions, getClerkUser } from "@/lib/clerk";
 
 const createAdminAppointmentSchema = z.object({
   customerName: z.string().min(1, "Customer name is required"),
@@ -635,6 +637,164 @@ export async function updateAppointmentDurationAction(
     console.error("Update appointment duration error:", error);
     return {
       error: error.message || "Failed to update appointment duration",
+    };
+  }
+}
+
+export async function deleteCustomerAction(customerId: string) {
+  // Get current user from Prisma (synced from Clerk)
+  const user = await getCurrentPrismaUser();
+
+  if (!user) {
+    return {
+      error: "You must be logged in to delete customers",
+    };
+  }
+
+  if (!["ADMIN", "BARBER"].includes(user.role)) {
+    return {
+      error: "You must be an admin or barber to delete customers",
+    };
+  }
+
+  if (!prisma) {
+    return {
+      error: "Database not available",
+    };
+  }
+
+  try {
+    // Get the customer to find their Clerk user ID
+    const customer = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.user.findUnique({
+          where: { id: customerId },
+          select: {
+            id: true,
+            email: true,
+            clerkUserId: true,
+            role: true,
+          },
+        });
+      },
+      null
+    );
+
+    if (!customer) {
+      return {
+        error: "Customer not found",
+      };
+    }
+
+    // Ensure we're only deleting customers
+    if (customer.role !== "CUSTOMER") {
+      return {
+        error: "Only customers can be deleted from this page",
+      };
+    }
+
+    // Delete from Clerk first (if they have a Clerk account)
+    // This MUST happen before Prisma deletion to ensure consistency
+    let clerkDeletionSuccess = false;
+    let clerkDeletionError: string | null = null;
+
+    if (customer.clerkUserId) {
+      // Check if Clerk secret key is configured
+      if (!process.env.CLERK_SECRET_KEY) {
+        logger.error(`[deleteCustomerAction] CLERK_SECRET_KEY is not configured! Cannot delete from Clerk.`);
+        clerkDeletionError = 'Clerk secret key not configured';
+      } else {
+        logger.info(`[deleteCustomerAction] Attempting to delete Clerk user ${customer.clerkUserId} for customer ${customerId} (${customer.email})`);
+        
+        try {
+          // Revoke sessions first (this is safe even if no sessions exist)
+          try {
+            await revokeClerkUserSessions(customer.clerkUserId);
+            logger.info(`[deleteCustomerAction] Revoked sessions for Clerk user ${customer.clerkUserId}`);
+          } catch (sessionError: any) {
+            // Log but continue - session revocation failure shouldn't block deletion
+            logger.warn(`[deleteCustomerAction] Failed to revoke sessions (continuing anyway): ${sessionError?.message || sessionError}`);
+          }
+          
+          // Then delete the Clerk user
+          try {
+            await deleteClerkUser(customer.clerkUserId);
+            logger.info(`[deleteCustomerAction] ✓ Successfully deleted Clerk user ${customer.clerkUserId}`);
+            clerkDeletionSuccess = true;
+          } catch (deleteError: any) {
+            // If user was already deleted (404), that's fine - consider it success
+            if (deleteError?.status === 404 || 
+                deleteError?.statusCode === 404 || 
+                deleteError?.errors?.[0]?.code === 'resource_not_found' ||
+                deleteError?.code === 'resource_not_found') {
+              logger.info(`[deleteCustomerAction] Clerk user ${customer.clerkUserId} was already deleted (404)`);
+              clerkDeletionSuccess = true;
+            } else {
+              // For other errors, log the full error details
+              const errorDetails = {
+                message: deleteError?.message,
+                status: deleteError?.status,
+                statusCode: deleteError?.statusCode,
+                code: deleteError?.code,
+                errors: deleteError?.errors,
+                name: deleteError?.name,
+              };
+              logger.error(`[deleteCustomerAction] ✗ Failed to delete Clerk user ${customer.clerkUserId}:`, deleteError);
+              logger.error(`[deleteCustomerAction] Full error object:`, JSON.stringify(errorDetails, null, 2));
+              clerkDeletionError = deleteError?.message || `Clerk API error: ${deleteError?.status || deleteError?.statusCode || 'Unknown'}`;
+              // Don't throw - we'll still delete from Prisma but log the error clearly
+            }
+          }
+        } catch (clerkError: any) {
+          // Catch any unexpected errors
+          logger.error(`[deleteCustomerAction] Unexpected error during Clerk deletion:`, clerkError);
+          clerkDeletionError = clerkError?.message || 'Unexpected Clerk error';
+        }
+      }
+    } else {
+      logger.info(`[deleteCustomerAction] Customer ${customerId} (${customer.email}) has no Clerk user ID, skipping Clerk deletion`);
+      clerkDeletionSuccess = true; // No Clerk user to delete, so consider it successful
+    }
+
+    // Delete from Prisma database (appointments will cascade delete automatically)
+    const deleteResult = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.user.delete({
+          where: { id: customerId },
+        });
+      },
+      null
+    );
+
+    if (!deleteResult) {
+      return {
+        error: "Failed to delete customer from database",
+      };
+    }
+
+    logger.info(`[deleteCustomerAction] Successfully deleted customer ${customerId} (${customer.email}) from Prisma`);
+
+    // Revalidate the customers page
+    locales.forEach((locale) => {
+      revalidatePath(`/${locale}/admin/customers`);
+    });
+
+    // Return success, but include warning if Clerk deletion failed
+    if (clerkDeletionError) {
+      logger.warn(`[deleteCustomerAction] Customer deleted from Prisma but Clerk deletion failed: ${clerkDeletionError}`);
+      return { 
+        success: true, 
+        warning: `Customer deleted from database, but failed to delete from Clerk: ${clerkDeletionError}. Please delete manually from Clerk dashboard.` 
+      };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Failed to delete customer:", error);
+    return {
+      error: error.message || "Failed to delete customer",
     };
   }
 }
