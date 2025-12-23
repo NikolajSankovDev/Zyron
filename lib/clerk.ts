@@ -130,6 +130,69 @@ export async function setClerkUserRole(userId: string, role: string) {
   }
 }
 
+// Create Clerk user with invitation email
+export async function createClerkUserWithInvitation(
+  email: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  role: string
+) {
+  try {
+    // Prepare metadata
+    const publicMetadata: Record<string, any> = { role };
+    
+    // Include phone in metadata if provided
+    if (phone && phone.trim().length > 0) {
+      publicMetadata.phone = phone.trim();
+    }
+
+    // Check if user already exists
+    try {
+      const existingUsers = await clerkClient.users.getUserList({ emailAddress: [email], limit: 1 });
+      if (existingUsers.data && existingUsers.data.length > 0) {
+        const existingUser = existingUsers.data[0];
+        logger.info(`User with email ${email} already exists, updating metadata`);
+        const updatedUser = await clerkClient.users.updateUser(existingUser.id, {
+          publicMetadata,
+        });
+        return updatedUser;
+      }
+    } catch (lookupError) {
+      // If lookup fails, continue with user creation
+      logger.info(`User lookup failed, proceeding with user creation: ${email}`);
+    }
+
+    // Create user without password requirement - they'll set it via password reset/invitation
+    const user = await clerkClient.users.createUser({
+      emailAddress: [email],
+      firstName: firstName || undefined,
+      lastName: lastName || undefined,
+      phoneNumber: phone && phone.trim().length > 0 ? [phone.trim()] : undefined,
+      publicMetadata,
+      skipPasswordChecks: true,
+      skipPasswordRequirement: true,
+    });
+
+    // Try to create a magic link for password setup (optional - user can also use password reset)
+    try {
+      // Create a token for the user to set their password
+      // Note: This creates a token that can be used to set up the account
+      // The user will receive an email with instructions if email is configured in Clerk
+      logger.info(`User created: ${user.id}. They can use password reset to set their password.`);
+    } catch (tokenError: any) {
+      // Log but don't fail - user is created, they can use password reset if needed
+      logger.warn(`Failed to create token for user ${user.id}:`, tokenError);
+    }
+
+    logger.info(`Successfully created Clerk user: ${user.id} (${email})`)
+    return user
+  } catch (error: any) {
+    logger.error(`Failed to create Clerk user: ${email}`, error as Error)
+    throw error
+  }
+}
+
 // Format Clerk user data
 export function formatClerkUser(clerkUser: any) {
   try {

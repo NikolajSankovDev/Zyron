@@ -128,3 +128,59 @@ export async function updateAppointmentStatus(
     null
   );
 }
+
+/**
+ * Cancel appointments for a barber within a date range
+ */
+export async function cancelAppointmentsByBarberAndDateRange(
+  barberId: string,
+  startDate: Date,
+  endDate: Date
+) {
+  if (endDate <= startDate) {
+    throw new Error("End date must be after start date");
+  }
+
+  return await safePrismaQuery(
+    async () => {
+      if (!prisma) throw new Error("Database not available");
+
+      // Get appointments that will be canceled (for return value)
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          barberId,
+          startTime: {
+            gte: startDate,
+            lte: endDate,
+          },
+          status: {
+            not: "CANCELED",
+          },
+        },
+      });
+
+      // Update all appointments to CANCELED status
+      const result = await prisma.appointment.updateMany({
+        where: {
+          barberId,
+          startTime: {
+            gte: startDate,
+            lte: endDate,
+          },
+          status: {
+            not: "CANCELED",
+          },
+        },
+        data: {
+          status: "CANCELED",
+        },
+      });
+
+      return {
+        canceledCount: result.count,
+        appointments,
+      };
+    },
+    { canceledCount: 0, appointments: [] }
+  );
+}

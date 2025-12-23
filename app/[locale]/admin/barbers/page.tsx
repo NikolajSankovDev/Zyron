@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { safePrismaQuery, prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
+import { DashboardScrollFix } from "@/components/admin/dashboard-scroll-fix";
+import { BarbersListClient } from "@/components/admin/barbers-list-client";
 
 export default async function BarbersPage({
   searchParams,
@@ -13,8 +13,6 @@ export default async function BarbersPage({
   // Await searchParams to prevent serialization errors
   await searchParams;
   
-  const t = await getTranslations("admin");
-  const tCommon = await getTranslations("common");
   const locale = await getLocale();
 
   // Get current user from Prisma (synced from Clerk)
@@ -49,65 +47,9 @@ export default async function BarbersPage({
   );
 
   return (
-    <div className="p-6 space-y-6 h-full flex flex-col">
-      <div className="flex justify-between items-center flex-shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold text-white">{t("barbers")}</h1>
-          <p className="text-gray-400 mt-1">{t("manageBarberAccounts")}</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90">{t("addBarber")}</Button>
-      </div>
-
-      <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
-        <CardHeader className="flex-shrink-0">
-          <CardTitle className="text-white">{t("allBarbers")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto min-h-0">
-          {barbers.length === 0 ? (
-            <p className="text-gray-400">
-              {t("noBarbersFound")} {!process.env.DATABASE_URL && "Database not connected."}
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {barbers.map((barber: any) => (
-                <div
-                  key={barber.id}
-                  className="p-4 border border-gray-800 rounded-lg bg-black/50"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-white">{barber.displayName}</p>
-                      <p className="text-sm text-gray-400 mt-1">
-                        {barber.user?.email || ""}
-                      </p>
-                      <p className="text-sm text-gray-400 mt-1">
-                        {t("languages")}: {barber.languages?.join(", ") || ""}
-                      </p>
-                      <p className="text-sm text-white mt-1">
-                        {t("appointments")}: {barber._count?.appointments || 0}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          barber.active
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : "bg-gray-700 text-gray-400 border border-gray-600"
-                        }`}
-                      >
-                        {barber.active ? t("active") : t("inactive")}
-                      </span>
-                      <Button variant="outline" size="sm" className="border-gray-700 text-white hover:bg-gray-800">
-                        {tCommon("edit")}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <DashboardScrollFix />
+      <BarbersListClient barbers={barbers} />
+    </>
   );
 }
