@@ -602,27 +602,8 @@ export function AdminCalendar({
   // Handle overlapping short appointments and mobile layout fixes
   useEffect(() => {
     const adjustOverlappingShortEvents = () => {
-      const isMobile = window.innerWidth <= 640;
-      // #region agent log
-      const calendarEl = document.querySelector('.admin-calendar') as HTMLElement;
-      const calendarComputedHeight = calendarEl ? window.getComputedStyle(calendarEl).height : 'none';
-      const calendarOffsetHeight = calendarEl?.offsetHeight || 0;
-      const timeViewEl = document.querySelector('.admin-calendar .rbc-time-view') as HTMLElement;
-      const timeViewComputedHeight = timeViewEl ? window.getComputedStyle(timeViewEl).height : 'none';
-      const timeContentEl = document.querySelector('.admin-calendar .rbc-time-content') as HTMLElement;
-      const timeContentHeight = timeContentEl?.offsetHeight || 0;
-      const timeContentScrollHeight = timeContentEl?.scrollHeight || 0;
-      const timeContentClientHeight = timeContentEl?.clientHeight || 0;
-      const timeContentOverflowY = timeContentEl ? window.getComputedStyle(timeContentEl).overflowY : 'none';
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:594',message:'adjustOverlappingShortEvents called',data:{viewMode,windowWidth:window.innerWidth,isMobile,date:date.toISOString(),appointmentCount:appointments.length,calendarComputedHeight,calendarOffsetHeight,timeViewComputedHeight,timeContentHeight,timeContentScrollHeight,timeContentClientHeight,timeContentOverflowY,canScroll:timeContentScrollHeight>timeContentClientHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
       // Find all day slots
       const daySlots = document.querySelectorAll('.admin-calendar .rbc-day-slot');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:598',message:'Day slots found',data:{daySlotCount:daySlots.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       daySlots.forEach((daySlot, slotIndex) => {
         const daySlotEl = daySlot as HTMLElement;
@@ -633,63 +614,49 @@ export function AdminCalendar({
         // This is needed because on mobile, the events container uses position: absolute
         // and needs a parent with explicit height
         const isMobile = window.innerWidth <= 640;
+        const isDesktop = window.innerWidth > 640;
         
-        // #region agent log
-        const daySlotHeightBefore = daySlotEl.offsetHeight;
-        const daySlotComputedHeight = window.getComputedStyle(daySlotEl).height;
-        const daySlotInlineHeight = daySlotEl.style.height;
-        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:606',message:'Mobile check and day-slot before fix',data:{slotIndex,isMobile,windowWidth:window.innerWidth,daySlotHeightBefore,daySlotComputedHeight,daySlotInlineHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+        // Calculate time slot groups height for both mobile and desktop
+        const timeSlotGroups = Array.from(daySlotEl.querySelectorAll('.rbc-timeslot-group')) as HTMLElement[];
+        const totalTimeSlotHeight = timeSlotGroups.reduce((sum, group) => sum + group.offsetHeight, 0);
         
         if (isMobile) {
-          const timeSlotGroups = Array.from(daySlotEl.querySelectorAll('.rbc-timeslot-group')) as HTMLElement[];
-          const totalTimeSlotHeight = timeSlotGroups.reduce((sum, group) => sum + group.offsetHeight, 0);
-          
-          // #region agent log
-          const timeSlotGroupHeights = timeSlotGroups.map(g => g.offsetHeight);
-          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:610',message:'Time slot groups calculation',data:{slotIndex,timeSlotGroupCount:timeSlotGroups.length,totalTimeSlotHeight,timeSlotGroupHeights},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
-          
           if (totalTimeSlotHeight > 0) {
             const currentHeight = daySlotEl.offsetHeight;
             const heightDiff = Math.abs(totalTimeSlotHeight - currentHeight);
             // Only update if there's a significant difference (more than 5px)
             if (heightDiff > 5) {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:615',message:'Applying height fix',data:{slotIndex,currentHeight,totalTimeSlotHeight,heightDiff},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-              // #endregion
-              
               daySlotEl.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
               eventsContainer.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
-              
-              // #region agent log
-              const daySlotHeightAfter = daySlotEl.offsetHeight;
-              const eventsContainerHeightAfter = eventsContainer.offsetHeight;
-              const daySlotComputedHeightAfter = window.getComputedStyle(daySlotEl).height;
-              fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:618',message:'Height fix applied',data:{slotIndex,daySlotHeightAfter,eventsContainerHeightAfter,daySlotComputedHeightAfter,expectedHeight:totalTimeSlotHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-              // #endregion
             }
+          }
+        } else if (isDesktop && totalTimeSlotHeight > 0) {
+          // Desktop: Force absolute positioning and ensure day-slot has explicit height
+          const currentPosition = window.getComputedStyle(eventsContainer).position;
+          const currentHeight = daySlotEl.offsetHeight;
+          const heightDiff = Math.abs(totalTimeSlotHeight - currentHeight);
+          
+          // Force absolute positioning (CSS might not be applied due to specificity)
+          if (currentPosition !== 'absolute') {
+            eventsContainer.style.setProperty('position', 'absolute', 'important');
+            eventsContainer.style.setProperty('top', '0', 'important');
+            eventsContainer.style.setProperty('left', '0', 'important');
+            eventsContainer.style.setProperty('right', '0', 'important');
+            eventsContainer.style.setProperty('bottom', '0', 'important');
+            eventsContainer.style.setProperty('width', '100%', 'important');
+          }
+          
+          // Only update height if there's a significant difference (more than 5px)
+          if (heightDiff > 5) {
+            daySlotEl.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
+            eventsContainer.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
+          } else {
+            // Even if height matches, ensure events container has the correct height
+            eventsContainer.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
           }
         }
         
         const allEvents = Array.from(eventsContainer.querySelectorAll('.rbc-event')) as HTMLElement[];
-        
-        // #region agent log
-        if (window.innerWidth <= 640 && allEvents.length > 0) {
-          const eventPositions = allEvents.map((e, idx) => ({
-            index: idx,
-            top: e.offsetTop,
-            height: e.offsetHeight,
-            styleTop: e.style.top,
-            styleHeight: e.style.height,
-            computedTop: window.getComputedStyle(e).top,
-            computedHeight: window.getComputedStyle(e).height,
-          }));
-          const daySlotFinalHeight = daySlotEl.offsetHeight;
-          const eventsContainerFinalHeight = eventsContainer.offsetHeight;
-          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:625',message:'Event positions on mobile',data:{slotIndex,eventCount:allEvents.length,daySlotFinalHeight,eventsContainerFinalHeight,eventPositions},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-        }
-        // #endregion
         
         // Apply correct padding and overflow to all events based on their height
         allEvents.forEach((rbcEvent) => {

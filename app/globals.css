@@ -791,9 +791,8 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* Ensure events container allows for side-by-side layout */
-/* Note: Mobile will override this to position: absolute */
+/* Note: Position is set by media queries - mobile and desktop both use absolute */
 .admin-calendar .rbc-day-slot .rbc-events-container {
-  position: relative;
   overflow: visible !important;
 }
 
@@ -855,17 +854,24 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* Desktop: Ensure day-slot height is not constrained (let it match time slot groups) */
-/* Desktop should use default react-big-calendar behavior - no height constraints */
+/* Desktop should use absolute positioning for events container to properly position appointments */
 @media (min-width: 641px) {
   .admin-calendar .rbc-day-slot {
     height: auto !important;
     min-height: auto !important;
+    position: relative !important;
   }
   
-  /* Desktop: events-container should be relative (default react-big-calendar behavior) */
+  /* Desktop: events-container must be absolute for proper appointment positioning */
   .admin-calendar .rbc-day-slot .rbc-events-container {
-    position: relative !important;
-    height: auto !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
 }
 
@@ -1334,7 +1340,7 @@ main.admin-calendar-main {
     height: auto !important;
   }
 
-  .admin-calendar .rbc-events-container {
+  .admin-calendar .rbc-day-slot .rbc-events-container {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
