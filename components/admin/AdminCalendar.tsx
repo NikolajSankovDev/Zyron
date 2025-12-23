@@ -117,11 +117,11 @@ const TimeGutterHeader = () => (
 
 // Status color mapping
 const STATUS_COLORS: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
-  BOOKED: { bg: "#EFF6FF", border: "#3B82F6", text: "#1E40AF" },      // Blue
-  ARRIVED: { bg: "#F0FDF4", border: "#22C55E", text: "#166534" },     // Green
+  BOOKED: { bg: "#BFDBFE", border: "#3B82F6", text: "#1E40AF" },      // Medium Blue
+  ARRIVED: { bg: "#86EFAC", border: "#22C55E", text: "#166534" },     // Medium Green
   COMPLETED: { bg: "#F9FAFB", border: "#9CA3AF", text: "#4B5563" },   // Gray
-  MISSED: { bg: "#FEF2F2", border: "#EF4444", text: "#991B1B" },      // Red
-  CANCELED: { bg: "#FFF7ED", border: "#F97316", text: "#9A3412" },    // Orange
+  MISSED: { bg: "#FCA5A5", border: "#EF4444", text: "#991B1B" },      // Medium Red
+  CANCELED: { bg: "#FED7AA", border: "#F97316", text: "#9A3412" },    // Orange
 };
 
 // Custom event component for appointment display
@@ -435,8 +435,18 @@ export function AdminCalendar({
     };
 
     const checkScrollPosition = () => {
-      const timeContent = document.querySelector('.admin-calendar .rbc-time-content');
-      const scrollContainer = document.querySelector('.admin-calendar .rbc-time-content > div');
+      const timeContent = document.querySelector('.admin-calendar .rbc-time-content') as HTMLElement;
+      const scrollContainer = document.querySelector('.admin-calendar .rbc-time-content > div') as HTMLElement;
+      const isMobile = window.innerWidth <= 640;
+      
+      // #region agent log
+      if (isMobile && timeContent) {
+        const mainEl = document.querySelector('.admin-calendar-main') as HTMLElement;
+        const calendarEl = document.querySelector('.admin-calendar') as HTMLElement;
+        const timeViewEl = document.querySelector('.admin-calendar .rbc-time-view') as HTMLElement;
+        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:437',message:'Mobile scroll container dimensions',data:{mainHeight:mainEl?.offsetHeight,mainComputedHeight:mainEl?window.getComputedStyle(mainEl).height:'none',calendarHeight:calendarEl?.offsetHeight,calendarComputedHeight:calendarEl?window.getComputedStyle(calendarEl).height:'none',timeViewHeight:timeViewEl?.offsetHeight,timeViewComputedHeight:timeViewEl?window.getComputedStyle(timeViewEl).height:'none',timeContentHeight:timeContent.offsetHeight,timeContentComputedHeight:window.getComputedStyle(timeContent).height,timeContentScrollHeight:timeContent.scrollHeight,timeContentClientHeight:timeContent.clientHeight,timeContentOverflowY:window.getComputedStyle(timeContent).overflowY,timeContentOverflowX:window.getComputedStyle(timeContent).overflowX,canScroll:timeContent.scrollHeight>timeContent.clientHeight,scrollTop:timeContent.scrollTop},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      }
+      // #endregion
       
       let allAtTop = true;
       [timeContent, scrollContainer].forEach((element) => {
@@ -589,19 +599,99 @@ export function AdminCalendar({
     };
   }, [viewMode, date, appointments]);
 
-  // Handle overlapping short appointments - ensure they're positioned side-by-side
+  // Handle overlapping short appointments and mobile layout fixes
   useEffect(() => {
     const adjustOverlappingShortEvents = () => {
+      const isMobile = window.innerWidth <= 640;
+      // #region agent log
+      const calendarEl = document.querySelector('.admin-calendar') as HTMLElement;
+      const calendarComputedHeight = calendarEl ? window.getComputedStyle(calendarEl).height : 'none';
+      const calendarOffsetHeight = calendarEl?.offsetHeight || 0;
+      const timeViewEl = document.querySelector('.admin-calendar .rbc-time-view') as HTMLElement;
+      const timeViewComputedHeight = timeViewEl ? window.getComputedStyle(timeViewEl).height : 'none';
+      const timeContentEl = document.querySelector('.admin-calendar .rbc-time-content') as HTMLElement;
+      const timeContentHeight = timeContentEl?.offsetHeight || 0;
+      const timeContentScrollHeight = timeContentEl?.scrollHeight || 0;
+      const timeContentClientHeight = timeContentEl?.clientHeight || 0;
+      const timeContentOverflowY = timeContentEl ? window.getComputedStyle(timeContentEl).overflowY : 'none';
+      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:594',message:'adjustOverlappingShortEvents called',data:{viewMode,windowWidth:window.innerWidth,isMobile,date:date.toISOString(),appointmentCount:appointments.length,calendarComputedHeight,calendarOffsetHeight,timeViewComputedHeight,timeContentHeight,timeContentScrollHeight,timeContentClientHeight,timeContentOverflowY,canScroll:timeContentScrollHeight>timeContentClientHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
       // Find all day slots
       const daySlots = document.querySelectorAll('.admin-calendar .rbc-day-slot');
       
-      daySlots.forEach((daySlot) => {
-        const eventsContainer = daySlot.querySelector('.rbc-events-container');
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:598',message:'Day slots found',data:{daySlotCount:daySlots.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      
+      daySlots.forEach((daySlot, slotIndex) => {
+        const daySlotEl = daySlot as HTMLElement;
+        const eventsContainer = daySlot.querySelector('.rbc-events-container') as HTMLElement;
         if (!eventsContainer) return;
+        
+        // Mobile-only: Ensure day-slot height matches total time slot groups height
+        // This is needed because on mobile, the events container uses position: absolute
+        // and needs a parent with explicit height
+        const isMobile = window.innerWidth <= 640;
+        
+        // #region agent log
+        const daySlotHeightBefore = daySlotEl.offsetHeight;
+        const daySlotComputedHeight = window.getComputedStyle(daySlotEl).height;
+        const daySlotInlineHeight = daySlotEl.style.height;
+        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:606',message:'Mobile check and day-slot before fix',data:{slotIndex,isMobile,windowWidth:window.innerWidth,daySlotHeightBefore,daySlotComputedHeight,daySlotInlineHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
+        if (isMobile) {
+          const timeSlotGroups = Array.from(daySlotEl.querySelectorAll('.rbc-timeslot-group')) as HTMLElement[];
+          const totalTimeSlotHeight = timeSlotGroups.reduce((sum, group) => sum + group.offsetHeight, 0);
+          
+          // #region agent log
+          const timeSlotGroupHeights = timeSlotGroups.map(g => g.offsetHeight);
+          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:610',message:'Time slot groups calculation',data:{slotIndex,timeSlotGroupCount:timeSlotGroups.length,totalTimeSlotHeight,timeSlotGroupHeights},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+          
+          if (totalTimeSlotHeight > 0) {
+            const currentHeight = daySlotEl.offsetHeight;
+            const heightDiff = Math.abs(totalTimeSlotHeight - currentHeight);
+            // Only update if there's a significant difference (more than 5px)
+            if (heightDiff > 5) {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:615',message:'Applying height fix',data:{slotIndex,currentHeight,totalTimeSlotHeight,heightDiff},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
+              
+              daySlotEl.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
+              eventsContainer.style.setProperty('height', `${totalTimeSlotHeight}px`, 'important');
+              
+              // #region agent log
+              const daySlotHeightAfter = daySlotEl.offsetHeight;
+              const eventsContainerHeightAfter = eventsContainer.offsetHeight;
+              const daySlotComputedHeightAfter = window.getComputedStyle(daySlotEl).height;
+              fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:618',message:'Height fix applied',data:{slotIndex,daySlotHeightAfter,eventsContainerHeightAfter,daySlotComputedHeightAfter,expectedHeight:totalTimeSlotHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
+            }
+          }
+        }
         
         const allEvents = Array.from(eventsContainer.querySelectorAll('.rbc-event')) as HTMLElement[];
         
-        // Apply correct padding and overflow to all events
+        // #region agent log
+        if (window.innerWidth <= 640 && allEvents.length > 0) {
+          const eventPositions = allEvents.map((e, idx) => ({
+            index: idx,
+            top: e.offsetTop,
+            height: e.offsetHeight,
+            styleTop: e.style.top,
+            styleHeight: e.style.height,
+            computedTop: window.getComputedStyle(e).top,
+            computedHeight: window.getComputedStyle(e).height,
+          }));
+          const daySlotFinalHeight = daySlotEl.offsetHeight;
+          const eventsContainerFinalHeight = eventsContainer.offsetHeight;
+          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:625',message:'Event positions on mobile',data:{slotIndex,eventCount:allEvents.length,daySlotFinalHeight,eventsContainerFinalHeight,eventPositions},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        }
+        // #endregion
+        
+        // Apply correct padding and overflow to all events based on their height
         allEvents.forEach((rbcEvent) => {
           const eventHeight = rbcEvent.offsetHeight;
           const calendarEvent = rbcEvent.querySelector('.calendar-event') as HTMLElement;
@@ -618,6 +708,7 @@ export function AdminCalendar({
           }
         });
         
+        // Handle overlapping short events - position them side-by-side
         const shortEvents = Array.from(eventsContainer.querySelectorAll('.rbc-event.calendar-event-wrapper--short')) as HTMLElement[];
         
         if (shortEvents.length <= 1) return;
@@ -649,8 +740,11 @@ export function AdminCalendar({
       });
     };
     
-    // Run after a short delay to ensure react-big-calendar has positioned events
-    const timeout = setTimeout(adjustOverlappingShortEvents, 100);
+    // Run after delays to ensure react-big-calendar has positioned events and set heights
+    const timeout1 = setTimeout(adjustOverlappingShortEvents, 100);
+    const timeout2 = setTimeout(adjustOverlappingShortEvents, 300);
+    const timeout3 = setTimeout(adjustOverlappingShortEvents, 500);
+    const timeout4 = setTimeout(adjustOverlappingShortEvents, 1000);
     
     // Also run when events change
     const observer = new MutationObserver(() => {
@@ -665,9 +759,36 @@ export function AdminCalendar({
       });
     }
     
+    // Add scroll event listeners to detect if scrolling is working
+    const timeContentEl = document.querySelector('.admin-calendar .rbc-time-content') as HTMLElement;
+    const handleScroll = () => {
+      // #region agent log
+      if (window.innerWidth <= 640 && timeContentEl) {
+        fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:733',message:'Scroll event fired',data:{scrollTop:timeContentEl.scrollTop,scrollHeight:timeContentEl.scrollHeight,clientHeight:timeContentEl.clientHeight,isAtBottom:timeContentEl.scrollTop+timeContentEl.clientHeight>=timeContentEl.scrollHeight-10},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      }
+      // #endregion
+    };
+    
+    if (timeContentEl) {
+      timeContentEl.addEventListener('scroll', handleScroll, { passive: true });
+      timeContentEl.addEventListener('touchstart', () => {
+        // #region agent log
+        if (window.innerWidth <= 640) {
+          fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminCalendar.tsx:742',message:'Touch start detected',data:{scrollHeight:timeContentEl.scrollHeight,clientHeight:timeContentEl.clientHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        }
+        // #endregion
+      }, { passive: true });
+    }
+    
     return () => {
-      clearTimeout(timeout);
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+      clearTimeout(timeout4);
       observer.disconnect();
+      if (timeContentEl) {
+        timeContentEl.removeEventListener('scroll', handleScroll);
+      }
     };
   }, [viewMode, date, appointments, timeInterval]);
 

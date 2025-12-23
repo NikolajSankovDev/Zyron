@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Users, Scissors, Clock } from "lucide-react";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
+import { DashboardScrollFix } from "@/components/admin/dashboard-scroll-fix";
 
 export default async function AdminDashboardPage() {
   const t = await getTranslations("admin");
@@ -123,26 +124,28 @@ export default async function AdminDashboardPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">{t("dashboard")}</h1>
-        <p className="text-gray-400 mt-1">{t("welcomeBack", { name: user.name })}</p>
-      </div>
+    <>
+      <DashboardScrollFix />
+      <div className="p-3 sm:p-4 md:p-6 pb-32 sm:pb-6 md:pb-6 space-y-4 sm:space-y-6 min-h-full mb-8 sm:mb-0" data-admin-page="dashboard" data-dashboard-page>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t("dashboard")}</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1">{t("welcomeBack", { name: user.name })}</p>
+        </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title} className="bg-gray-900 border-gray-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
                   {stat.title}
                 </CardTitle>
-                <Icon className="h-4 w-4 text-gray-400" />
+                <Icon className="h-4 w-4 text-gray-400 flex-shrink-0" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
+                <div className="text-xl sm:text-2xl font-bold text-white">{stat.value}</div>
                 <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
               </CardContent>
             </Card>
@@ -151,15 +154,16 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Recent Activity Placeholder */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800 flex-shrink-0">
         <CardHeader>
-          <CardTitle className="text-white">{t("recentActivity")}</CardTitle>
+          <CardTitle className="text-base sm:text-lg text-white">{t("recentActivity")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">{t("recentActivityPlaceholder")}</p>
+          <p className="text-sm sm:text-base text-gray-400">{t("recentActivityPlaceholder")}</p>
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
 

@@ -7,6 +7,7 @@ import LanguageSwitcher from "@/components/layout/language-switcher";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import { useEffect } from "react";
 
 interface NavItem {
   href: string;
@@ -23,6 +24,47 @@ export function AdminTopBar({ navItems, user, logoutLabel }: AdminTopBarProps) {
   const { signOut } = useClerk();
   const router = useRouter();
   const locale = useLocale();
+
+  useEffect(() => {
+    const fixMainContentMargin = () => {
+      const mainWrapper = document.querySelector('[data-main-content-wrapper]') as HTMLElement;
+      const sidebar = document.querySelector('aside[class*="lg:fixed"]') as HTMLElement;
+      
+      if (mainWrapper) {
+        const isMobile = window.innerWidth < 1024;
+        
+        if (isMobile) {
+          mainWrapper.style.setProperty('margin-left', '0', 'important');
+          mainWrapper.style.setProperty('width', '100%', 'important');
+          mainWrapper.style.setProperty('max-width', '100%', 'important');
+        } else {
+          // Desktop: set margin to account for sidebar (w-80 = 20rem = 320px)
+          // But first check actual sidebar width
+          const actualSidebarWidth = sidebar?.offsetWidth || 320;
+          const marginValue = `${actualSidebarWidth}px`;
+          mainWrapper.style.setProperty('margin-left', marginValue, 'important');
+          mainWrapper.style.removeProperty('width');
+          mainWrapper.style.removeProperty('max-width');
+        }
+        
+        // Force reflow
+        void mainWrapper.offsetHeight;
+      }
+    };
+    
+    // Apply fix with delays to handle dynamic content
+    fixMainContentMargin();
+    setTimeout(fixMainContentMargin, 100);
+    setTimeout(fixMainContentMargin, 500);
+    setTimeout(fixMainContentMargin, 1000);
+    
+    // Also fix on resize
+    window.addEventListener('resize', fixMainContentMargin);
+    
+    return () => {
+      window.removeEventListener('resize', fixMainContentMargin);
+    };
+  }, []);
 
   async function handleSignOut() {
     try {

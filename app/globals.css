@@ -791,6 +791,7 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* Ensure events container allows for side-by-side layout */
+/* Note: Mobile will override this to position: absolute */
 .admin-calendar .rbc-day-slot .rbc-events-container {
   position: relative;
   overflow: visible !important;
@@ -847,9 +848,25 @@ body:has([data-radix-scroll-area-viewport]) {
 }
 
 /* Ensure day slot allows for proper event positioning */
+/* Desktop: Let react-big-calendar handle height naturally */
 .admin-calendar .rbc-day-slot {
   position: relative;
   overflow: visible !important;
+}
+
+/* Desktop: Ensure day-slot height is not constrained (let it match time slot groups) */
+/* Desktop should use default react-big-calendar behavior - no height constraints */
+@media (min-width: 641px) {
+  .admin-calendar .rbc-day-slot {
+    height: auto !important;
+    min-height: auto !important;
+  }
+  
+  /* Desktop: events-container should be relative (default react-big-calendar behavior) */
+  .admin-calendar .rbc-day-slot .rbc-events-container {
+    position: relative !important;
+    height: auto !important;
+  }
 }
 
 /* Month view event styling */
@@ -874,20 +891,530 @@ body:has([data-radix-scroll-area-viewport]) {
 .admin-calendar-main {
   padding: 0 !important;
   margin: 0 !important;
+  position: relative !important;
+  left: auto !important;
+  transform: none !important;
 }
 
 main.admin-calendar-main {
   padding: 0 !important;
   margin: 0 !important;
+  position: relative !important;
+  left: auto !important;
+  transform: none !important;
 }
 
-/* Ensure main content wrapper has margin for sidebar */
-[data-main-content-wrapper] {
-  margin-left: 18rem !important; /* 288px = w-72 */
+/* Ensure calendar container respects parent positioning */
+[data-admin-main],
+.admin-calendar-main > *,
+.admin-calendar-main .admin-calendar {
+  position: relative !important;
+  left: auto !important;
+  margin-left: 0 !important;
+  transform: none !important;
 }
 
+/* Ensure calendar buttons are visible and not affected by positioning rules */
+[data-calendar-buttons] {
+  position: fixed !important;
+  z-index: 50 !important;
+  visibility: visible !important;
+  display: flex !important;
+  pointer-events: auto !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+}
+
+/* On larger screens, adjust position to account for sidebar (w-80 = 20rem = 320px) */
 @media (min-width: 1024px) {
-  [data-main-content-wrapper] {
-    margin-left: 18rem !important; /* 288px = w-72 */
+  [data-calendar-buttons] {
+    right: calc(1rem + 20rem) !important; /* Account for sidebar width (lg:w-80 = 20rem) */
+  }
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE STYLES (max-width: 640px) - CLEAN REBUILD
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  /* CRITICAL: Force body/html to allow scrolling on mobile for ALL pages */
+  /* Use dvh (dynamic viewport height) for iOS Safari - updates as address bar shows/hides */
+  /* 100dvh works on iOS 15.4+ and modern browsers */
+  body,
+  html {
+    height: auto !important;
+    min-height: 100dvh !important; /* iOS Safari: dynamic viewport height */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Fallback for older browsers that don't support dvh */
+  @supports not (min-height: 100dvh) {
+    body,
+    html {
+      min-height: 100vh !important;
+    }
+  }
+  
+  /* CRITICAL: Admin layout container - allow growth on mobile */
+  div[data-admin-layout] {
+    min-height: 100dvh !important; /* iOS Safari: dynamic viewport height */
+    height: auto !important;
+  }
+  
+  /* Fallback for older browsers */
+  @supports not (min-height: 100dvh) {
+    div[data-admin-layout] {
+      min-height: 100vh !important;
+    }
+  }
+  
+  /* Direct targeting without :has() for iOS Safari compatibility */
+  /* Target all admin pages directly by their data attributes */
+  [data-admin-page="dashboard"],
+  [data-admin-page="barbers"],
+  [data-admin-page="services"] {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)) !important;
+    margin-bottom: 40px !important;
+    flex: 0 1 auto !important;
+  }
+  
+  /* Ensure main element allows content to extend */
+  main[data-admin-main] {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    flex: 0 1 auto !important;
+  }
+  
+  /* Content wrapper must not constrain */
+  div[data-main-content-wrapper] {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    flex: 0 1 auto !important;
+  }
+  
+  /* Ensure body/html can scroll on mobile for all admin pages (except calendar) */
+  body:has([data-admin-page]),
+  html:has([data-admin-page]) {
+    height: auto !important;
+    min-height: 100dvh !important; /* iOS Safari: dynamic viewport height */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Ensure body/html can scroll on mobile for dashboard */
+  body:has([data-dashboard-page]),
+  html:has([data-dashboard-page]) {
+    height: auto !important;
+    min-height: 100dvh !important; /* iOS Safari: dynamic viewport height */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Fallback for older browsers */
+  @supports not (min-height: 100dvh) {
+    body:has([data-admin-page]),
+    html:has([data-admin-page]),
+    body:has([data-dashboard-page]),
+    html:has([data-dashboard-page]) {
+      min-height: 100vh !important;
+    }
+  }
+
+  /* CRITICAL: Dashboard page - force scrolling on mobile */
+  /* Use class added by script for better compatibility */
+  main[data-admin-main].dashboard-page,
+  main.admin-calendar-main.dashboard-page {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  /* Target the main element when it contains dashboard content */
+  main[data-admin-main] [data-dashboard-page],
+  .admin-calendar-main [data-dashboard-page] {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)) !important; /* Extra padding for bottom nav + safe area */
+    margin-bottom: 30px !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Ensure the last child is fully visible */
+  main[data-admin-main] [data-dashboard-page] > *:last-child {
+    margin-bottom: 0 !important;
+  }
+  
+  /* CRITICAL: Ensure main container doesn't clip content on mobile for all admin pages */
+  main[data-admin-main]:has([data-admin-page]),
+  main[data-admin-main]:has([data-dashboard-page]) {
+    min-height: 100% !important;
+    height: auto !important;
+    padding-bottom: 0 !important;
+    overflow: visible !important;
+  }
+  
+  /* Ensure body scrolls, not a nested container */
+  body:has([data-admin-page]),
+  body:has([data-dashboard-page]) {
+    position: relative !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Fix barbers and services pages - remove height constraints on mobile */
+  [data-admin-page="barbers"],
+  [data-admin-page="services"],
+  [data-admin-page="dashboard"] {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
+    margin-bottom: 30px !important;
+    flex: 0 1 auto !important;
+  }
+  
+  /* Ensure barbers/services card content doesn't create nested scroll on mobile */
+  [data-admin-page="barbers"] .flex-1,
+  [data-admin-page="services"] .flex-1,
+  [data-admin-page="barbers"] [class*="flex-1"],
+  [data-admin-page="services"] [class*="flex-1"] {
+    flex: 0 1 auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  
+  /* Remove overflow-y-auto from cards on mobile */
+  [data-admin-page="barbers"] [class*="overflow-y-auto"],
+  [data-admin-page="services"] [class*="overflow-y-auto"] {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Force parent main element to allow scrolling when dashboard is present */
+  main[data-admin-main]:has([data-dashboard-page]),
+  .admin-calendar-main:has([data-dashboard-page]),
+  main.admin-calendar-main:has([data-dashboard-page]) {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  /* Ensure parent wrapper allows content to grow */
+  div[data-main-content-wrapper]:has([data-dashboard-page]) {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    flex: 0 1 auto !important;
+  }
+
+  /* Root container should allow growth */
+  div.min-h-screen:has([data-dashboard-page]),
+  div[data-admin-layout].min-h-screen {
+    min-height: 100dvh !important; /* iOS Safari: dynamic viewport height */
+    height: auto !important;
+  }
+  
+  /* Fallback for older browsers */
+  @supports not (min-height: 100dvh) {
+    div.min-h-screen:has([data-dashboard-page]),
+    div[data-admin-layout].min-h-screen {
+      min-height: 100vh !important;
+    }
+  }
+
+  /* Default: allow natural scrolling for ALL admin pages on mobile */
+  .admin-calendar-main,
+  main.admin-calendar-main,
+  main[data-admin-main] {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+  
+  /* CRITICAL: Force main element to allow content to extend on mobile */
+  main[data-admin-main] {
+    flex: 0 1 auto !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  
+  /* Ensure content wrapper doesn't constrain on mobile */
+  div[data-main-content-wrapper] {
+    flex: 0 1 auto !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* Only apply fixed height when calendar is present AND dashboard is NOT present */
+  .admin-calendar-main:has(.admin-calendar):not(:has([data-dashboard-page])),
+  main.admin-calendar-main:has(.admin-calendar):not(:has([data-dashboard-page])) {
+    height: calc(100vh - 64px) !important;
+    overflow: hidden !important;
+  }
+
+  /* Calendar-specific: fixed height container with internal scrolling */
+  .admin-calendar-main > div:has(.admin-calendar):not(:has([data-dashboard-page])) {
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .admin-calendar-main .admin-calendar {
+    height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Dashboard and other non-calendar pages: ensure children can flow naturally */
+  .admin-calendar-main > div:not(:has(.admin-calendar)),
+  main[data-admin-main] > [data-dashboard-page] {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .admin-calendar {
+    height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .admin-calendar .rbc-time-view {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+  }
+
+  /* Time content - scrollable area (this is the key scroll container) */
+  .admin-calendar .rbc-time-content {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    min-height: 0 !important;
+    position: relative !important;
+    /* Ensure scroll works on touch devices */
+    touch-action: pan-y !important;
+  }
+
+  /* Time gutter - narrow on mobile, scrolls with content */
+  .admin-calendar .rbc-time-gutter {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    flex-shrink: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Day slot - JavaScript sets height to match time slot groups */
+  .admin-calendar .rbc-day-slot {
+    position: relative !important;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+
+  /* Events container - absolute positioned, needs parent with explicit height */
+  .admin-calendar .rbc-day-slot .rbc-events-container {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+
+  .admin-calendar .rbc-events-container .rbc-event {
+    pointer-events: auto !important;
+  }
+
+  /* Events - absolute positioned */
+  .admin-calendar .rbc-day-slot .rbc-event {
+    position: absolute !important;
+    min-width: 100px !important;
+    max-width: 100% !important;
+  }
+
+  /* Smaller headers */
+  .admin-calendar__resource-header-cell {
+    min-height: 40px !important;
+    padding: 8px 6px !important;
+    font-size: 12px !important;
+  }
+
+  .admin-calendar__resource-name {
+    font-size: 12px !important;
+  }
+
+  .admin-calendar .rbc-time-header-gutter {
+    min-height: 40px !important;
+    font-size: 11px !important;
+    width: 50px !important;
+  }
+
+  .admin-calendar__day-header {
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+  }
+
+  .admin-calendar .rbc-time-gutter .rbc-label {
+    font-size: 10px !important;
+  }
+
+  /* Smaller event text */
+  .admin-calendar .calendar-event {
+    font-size: 10px !important;
+    padding: 2px 4px 2px 6px !important;
+    min-height: 24px !important;
+  }
+
+  .admin-calendar .calendar-event__time {
+    font-size: 9px !important;
+  }
+
+  .admin-calendar .calendar-event__customer {
+    font-size: 10px !important;
+  }
+
+  .admin-calendar .calendar-event__services {
+    font-size: 9px !important;
+  }
+
+  /* Minimum column width */
+  .admin-calendar .rbc-time-content > * + * > * {
+    min-width: 120px !important;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1023px) {
+  /* Calendar container height on tablet */
+  .admin-calendar {
+    height: calc(100vh - 64px) !important;
+    min-height: 600px !important;
+    max-height: calc(100vh - 64px) !important;
+    overflow: hidden !important;
+  }
+
+  .admin-calendar .rbc-time-view {
+    height: 100% !important;
+    min-height: 600px !important;
+  }
+
+  /* Event positioning on tablet - let height be auto to match time slot groups */
+  .admin-calendar .rbc-day-slot {
+    position: relative !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .admin-calendar .rbc-events-container {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Time gutter width on tablet */
+  .admin-calendar .rbc-time-gutter {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+  }
+
+  /* Headers */
+  .admin-calendar__resource-header-cell {
+    min-height: 44px !important;
+    padding: 9px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .admin-calendar__resource-name {
+    font-size: 13px !important;
+  }
+
+  .admin-calendar .rbc-time-header-gutter {
+    min-height: 44px !important;
+    font-size: 12px !important;
+    width: 60px !important;
+  }
+
+  /* Time content scrolling on tablet */
+  .admin-calendar .rbc-time-content {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* Ensure main content wrapper has NO margin on mobile, margin only on desktop */
+/* Use maximum specificity to override Tailwind classes */
+
+/* Mobile - no margin, full width */
+@media (max-width: 1023px) {
+  div[data-main-content-wrapper],
+  div.flex-1[data-main-content-wrapper],
+  div.flex[data-main-content-wrapper],
+  div[data-main-content-wrapper].flex-1,
+  div[data-main-content-wrapper].flex,
+  div[data-main-content-wrapper][class*="ml-"],
+  div[data-main-content-wrapper][class*="lg:ml-"] {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Desktop - margin to account for sidebar */
+/* Note: JavaScript will dynamically set the correct margin based on actual sidebar width */
+/* This CSS provides a fallback but JavaScript inline styles with !important will override */
+@media (min-width: 1024px) {
+  div[data-main-content-wrapper],
+  div.flex-1[data-main-content-wrapper],
+  div.flex[data-main-content-wrapper],
+  div[data-main-content-wrapper].flex-1,
+  div[data-main-content-wrapper].flex {
+    /* Don't set margin here - let JavaScript handle it dynamically */
+    width: auto !important;
+  }
+}
+
+/* Ensure sidebar is completely hidden and takes no space on mobile */
+@media (max-width: 1023px) {
+  aside[class*="lg:fixed"] {
+    display: none !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }

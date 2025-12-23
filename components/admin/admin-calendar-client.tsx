@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { format, isSameDay, startOfDay, endOfWeek, startOfWeek } from "date-fns";
 import { Settings, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,14 @@ import { CalendarSettingsModal } from "./calendar-settings";
 import { AppointmentDetailPanel } from "./appointment-detail-panel";
 import { CreateAppointmentDialog } from "./create-appointment-dialog";
 import { RescheduleAppointmentDialog } from "./reschedule-appointment-dialog";
+import { ManualRescheduleDialog } from "./manual-reschedule-dialog";
+import { AddNoteDialog } from "./add-note-dialog";
 import {
   loadCalendarSettings,
   saveCalendarSettings,
   getDefaultCalendarSettings,
 } from "@/lib/utils/calendar";
-import { deleteAppointmentAction, updateAppointmentStatusAction, rescheduleAppointmentAction } from "@/lib/actions/admin";
+import { deleteAppointmentAction, updateAppointmentStatusAction, rescheduleAppointmentAction, updateAppointmentNoteAction, updateAppointmentDurationAction } from "@/lib/actions/admin";
 import type {
   AppointmentDisplayData,
   BarberDisplayData,
@@ -35,15 +37,13 @@ interface AdminCalendarClientProps {
   appointments: AppointmentDisplayData[];
 }
 
-type ViewMode = "day" | "week";
-
 export function AdminCalendarClient({
   initialDate,
   barbers,
   appointments,
 }: AdminCalendarClientProps) {
   const [currentDate, setCurrentDate] = useState(initialDate);
-  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [weekViewBarberId, setWeekViewBarberId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -91,8 +91,17 @@ export function AdminCalendarClient({
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [rescheduleData, setRescheduleData] = useState<RescheduleData | null>(null);
   
+  // Manual reschedule dialog state
+  const [manualRescheduleDialogOpen, setManualRescheduleDialogOpen] = useState(false);
+  
+  // Note dialog state
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  
   // Barber selection dialog state (week view only)
   const [barberDialogOpen, setBarberDialogOpen] = useState(false);
+  
+  // Ref for buttons container
+  const buttonsContainerRef = useRef<HTMLDivElement>(null);
   
   // Compute filtered barber IDs
   // For week view, only show the selected barber
@@ -134,6 +143,35 @@ export function AdminCalendarClient({
     }
   }, [settings, isMounted]);
 
+  // Fix buttons positioning
+  useEffect(() => {
+    const fixButtonsPosition = () => {
+      const buttonsContainer = buttonsContainerRef.current;
+      if (buttonsContainer) {
+        // Force correct positioning with inline styles
+        const rightOffset = 16; // 1rem = 16px from the right edge
+        
+        buttonsContainer.style.setProperty('position', 'fixed', 'important');
+        buttonsContainer.style.setProperty('bottom', '1rem', 'important');
+        buttonsContainer.style.setProperty('right', `${rightOffset}px`, 'important');
+        buttonsContainer.style.setProperty('z-index', '50', 'important');
+      }
+    };
+
+    // Apply fix with delays to handle dynamic content
+    fixButtonsPosition();
+    setTimeout(fixButtonsPosition, 100);
+    setTimeout(fixButtonsPosition, 500);
+    setTimeout(fixButtonsPosition, 1000);
+    
+    // Also fix on resize
+    window.addEventListener('resize', fixButtonsPosition);
+    
+    return () => {
+      window.removeEventListener('resize', fixButtonsPosition);
+    };
+  }, [isMounted, viewMode]);
+
   // Filter appointments for current date/week
   const filteredAppointments = appointments.filter((apt) => {
     const aptDate = startOfDay(new Date(apt.startTime));
@@ -154,7 +192,7 @@ export function AdminCalendarClient({
   }, []);
 
   const handleViewChange = useCallback((view: "day" | "week") => {
-    setViewMode(view);
+    setViewMode(view as "day" | "week");
   }, []);
 
   const handleDateChange = useCallback((date: Date) => {
@@ -207,7 +245,7 @@ export function AdminCalendarClient({
     setRescheduleDialogOpen(true);
   }, []);
 
-  // Confirm reschedule action
+  // Confirm reschedule action (for drag-and-drop)
   const handleConfirmReschedule = useCallback(async (data: RescheduleData) => {
     const result = await rescheduleAppointmentAction(
       data.appointment.id,
@@ -225,20 +263,83 @@ export function AdminCalendarClient({
     window.location.reload();
   }, []);
 
-  // Ensure main content wrapper has margin-left for sidebar
-  useEffect(() => {
-    const mainContentWrapper = document.querySelector('[data-main-content-wrapper]');
-    if (mainContentWrapper) {
-      (mainContentWrapper as HTMLElement).style.setProperty('margin-left', '18rem', 'important');
+  // Handle manual reschedule (from menu)
+  const handleManualReschedule = useCallback(async (
+    appointmentId: string,
+    newStartTime: Date,
+    newEndTime: Date,
+    newBarberId?: string
+  ) => {
+    const result = await rescheduleAppointmentAction(
+      appointmentId,
+      newStartTime.toISOString(),
+      newEndTime.toISOString(),
+      newBarberId
+    );
+
+    if (result.error) {
+      alert(`Failed to reschedule: ${result.error}`);
+      throw new Error(result.error);
     }
+
+    // Refresh the page to show updated appointment
+    window.location.reload();
   }, []);
 
+  // Handle add/update note
+  const handleUpdateNote = useCallback(async (appointmentId: string, notes: string) => {
+    const result = await updateAppointmentNoteAction(appointmentId, notes);
+    
+    if (result.error) {
+      alert(`Failed to update note: ${result.error}`);
+      throw new Error(result.error);
+    }
+
+    // Refresh the page to show updated note
+    window.location.reload();
+  }, []);
+
+  // Handle update duration
+  const handleUpdateDuration = useCallback(async (appointmentId: string, durationMinutes: number) => {
+    const result = await updateAppointmentDurationAction(appointmentId, durationMinutes);
+    
+    if (result.error) {
+      alert(`Failed to update duration: ${result.error}`);
+      return;
+    }
+
+    // Refresh the page to show updated appointment
+    window.location.reload();
+  }, []);
+
+
+  // Debug: Log container dimensions on mobile
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isMobile = window.innerWidth <= 640;
+    if (!isMobile) return;
+    
+    const logDimensions = () => {
+      const mainEl = document.querySelector('.admin-calendar-main') as HTMLElement;
+      const wrapperEl = document.querySelector('.admin-calendar-main > div') as HTMLElement;
+      const calendarEl = document.querySelector('.admin-calendar') as HTMLElement;
+      const timeContentEl = document.querySelector('.admin-calendar .rbc-time-content') as HTMLElement;
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin-calendar-client.tsx:316',message:'Container dimensions check',data:{mainHeight:mainEl?.offsetHeight,mainComputedHeight:mainEl?window.getComputedStyle(mainEl).height:'none',mainOverflow:mainEl?window.getComputedStyle(mainEl).overflow:'none',wrapperHeight:wrapperEl?.offsetHeight,wrapperOverflow:wrapperEl?window.getComputedStyle(wrapperEl).overflow:'none',calendarHeight:calendarEl?.offsetHeight,calendarOverflow:calendarEl?window.getComputedStyle(calendarEl).overflow:'none',timeContentHeight:timeContentEl?.offsetHeight,timeContentScrollHeight:timeContentEl?.scrollHeight,timeContentClientHeight:timeContentEl?.clientHeight,timeContentOverflow:timeContentEl?window.getComputedStyle(timeContentEl).overflow:'none',viewportHeight:window.innerHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    };
+    
+    const timeouts = [100, 500, 1000, 2000].map(delay => setTimeout(logDimensions, delay));
+    return () => timeouts.forEach(clearTimeout);
+  }, [isMounted, viewMode]);
+
   return (
-    <div className="relative h-full w-full m-0 p-0 text-white">
+    <div className="relative h-full w-full m-0 p-0 text-white overflow-visible">
 
       {/* Calendar container - full height and width, no padding, no margins */}
-      <div className="h-full w-full m-0 p-0 overflow-hidden bg-white text-gray-900">
-        <div className="h-full w-full">
+      <div className="h-full w-full m-0 p-0 overflow-visible sm:overflow-hidden bg-white text-gray-900">
+        <div className="h-full w-full overflow-visible sm:overflow-hidden">
           <AdminCalendar
             date={currentDate}
             barbers={barbers}
@@ -262,29 +363,33 @@ export function AdminCalendarClient({
         </div>
       </div>
 
-      {/* Round icon buttons - bottom right */}
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-3">
+      {/* Round icon buttons - bottom right, responsive sizing */}
+      <div 
+        ref={buttonsContainerRef}
+        className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-50 flex flex-col gap-2 sm:gap-3 lg:right-[calc(1rem+20rem)]"
+        data-calendar-buttons
+      >
         {/* Barber selector button - only in week view */}
         {viewMode === "week" && barbers.length > 0 && (
           <Button
             variant="outline"
-            className="h-12 w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
             onClick={() => setBarberDialogOpen(true)}
             title="Select barber"
           >
-            <User className="h-5 w-5" />
+            <User className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         )}
         <Button
           variant="outline"
-          className="h-12 w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
+          className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border-gray-700 bg-gray-800 text-white shadow-lg hover:bg-gray-700 p-0"
           onClick={() => setSettingsOpen(true)}
           title="Settings"
         >
-          <Settings className="h-5 w-5" />
+          <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
         <Button
-          className="h-12 w-12 rounded-full bg-primary shadow-lg hover:bg-primary/90 p-0"
+          className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary shadow-lg hover:bg-primary/90 p-0"
           onClick={() => {
             setCreateDialogInitialDate(currentDate);
             setCreateDialogInitialTime(undefined);
@@ -293,7 +398,7 @@ export function AdminCalendarClient({
           }}
           title="New appointment"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
 
@@ -332,28 +437,43 @@ export function AdminCalendarClient({
           onMarkMissed={(id) => {
             handleUpdateStatus(id, "MISSED");
           }}
+          onMarkBooked={(id) => {
+            handleUpdateStatus(id, "BOOKED");
+          }}
           onReschedule={(id) => {
-            console.log("Reschedule:", id);
-          }}
-          onBookAgain={(id) => {
-            console.log("Book again:", id);
-          }}
-          onAddService={(id) => {
-            console.log("Add service:", id);
+            setManualRescheduleDialogOpen(true);
           }}
           onAddNote={(id) => {
-            console.log("Add note:", id);
+            setNoteDialogOpen(true);
           }}
+          onUpdateDuration={handleUpdateDuration}
         />
       )}
 
-      {/* Reschedule Appointment Dialog */}
+      {/* Reschedule Appointment Dialog (for drag-and-drop) */}
       <RescheduleAppointmentDialog
         open={rescheduleDialogOpen}
         onOpenChange={setRescheduleDialogOpen}
         rescheduleData={rescheduleData}
         barbers={barbers}
         onConfirm={handleConfirmReschedule}
+      />
+
+      {/* Manual Reschedule Dialog (for menu option) */}
+      <ManualRescheduleDialog
+        open={manualRescheduleDialogOpen}
+        onOpenChange={setManualRescheduleDialogOpen}
+        appointment={selectedAppointment}
+        barbers={barbers}
+        onConfirm={handleManualReschedule}
+      />
+
+      {/* Add Note Dialog */}
+      <AddNoteDialog
+        open={noteDialogOpen}
+        onOpenChange={setNoteDialogOpen}
+        appointment={selectedAppointment}
+        onConfirm={handleUpdateNote}
       />
 
       {/* Barber Selection Dialog - Week View Only */}

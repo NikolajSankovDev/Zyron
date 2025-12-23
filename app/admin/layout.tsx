@@ -6,6 +6,7 @@ import { AdminTopBar } from "@/components/admin/admin-top-bar";
 import { getTranslations, getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import { SidebarMiniCalendarWrapper } from "@/components/admin/sidebar-mini-calendar-wrapper";
+import { MobileMarginFix } from "@/components/admin/mobile-margin-fix";
 
 export default async function AdminLayout({
   children,
@@ -34,7 +35,8 @@ export default async function AdminLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <div className="h-screen flex flex-col bg-black">
+      <MobileMarginFix />
+      <div className="min-h-screen lg:h-screen flex flex-col bg-black" data-admin-layout>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-80 lg:bg-gray-900 lg:border-r lg:border-gray-800">
         <div className="flex h-full flex-col">
@@ -54,7 +56,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: '20rem' }} data-main-content-wrapper>
+      <div className="lg:flex-1 flex flex-col lg:overflow-hidden overflow-visible w-full min-h-0" data-main-content-wrapper>
         {/* Top Bar */}
         <AdminTopBar
           navItems={navItems}
@@ -63,7 +65,7 @@ export default async function AdminLayout({
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-hidden admin-calendar-main" style={{ padding: 0, margin: 0 }} data-admin-main>{children}</main>
+        <main className="lg:flex-1 lg:overflow-y-auto overflow-visible admin-calendar-main w-full flex-shrink" style={{ padding: 0, margin: 0 }} data-admin-main>{children}</main>
       </div>
     </div>
     </NextIntlClientProvider>

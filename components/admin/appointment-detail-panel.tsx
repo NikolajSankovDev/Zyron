@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
-import { X, Trash2, MoreVertical, UserCheck, CalendarX, Calendar, RotateCcw, Briefcase, FileText, ArrowLeft, Clock, User, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { X, Trash2, MoreVertical, UserCheck, CalendarX, Calendar, Briefcase, FileText, ArrowLeft, Clock, User, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useScrollbarFix } from "@/lib/hooks/use-scrollbar-fix";
@@ -23,10 +24,10 @@ interface AppointmentDetailPanelProps {
   onDelete?: (appointmentId: string) => void;
   onMarkArrived?: (appointmentId: string) => void;
   onMarkMissed?: (appointmentId: string) => void;
+  onMarkBooked?: (appointmentId: string) => void;
   onReschedule?: (appointmentId: string) => void;
-  onBookAgain?: (appointmentId: string) => void;
-  onAddService?: (appointmentId: string) => void;
   onAddNote?: (appointmentId: string) => void;
+  onUpdateDuration?: (appointmentId: string, durationMinutes: number) => void;
 }
 
 export function AppointmentDetailPanel({
@@ -35,10 +36,10 @@ export function AppointmentDetailPanel({
   onDelete,
   onMarkArrived,
   onMarkMissed,
+  onMarkBooked,
   onReschedule,
-  onBookAgain,
-  onAddService,
   onAddNote,
+  onUpdateDuration,
 }: AppointmentDetailPanelProps) {
   const [activeTab, setActiveTab] = useState("info");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -167,14 +168,14 @@ export function AppointmentDetailPanel({
       case "ARRIVED":
       case "COMPLETED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-600/30 text-green-300 border-2 border-green-500/50">
             <CheckCircle className="h-3 w-3" />
             {status === "COMPLETED" ? "Completed" : "Arrived"}
           </span>
         );
       case "MISSED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/20">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-600/30 text-red-300 border-2 border-red-500/50">
             <AlertCircle className="h-3 w-3" />
             Missed
           </span>
@@ -188,7 +189,7 @@ export function AppointmentDetailPanel({
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-600/30 text-blue-300 border-2 border-blue-500/50">
             <Clock className="h-3 w-3" />
             Booked
           </span>
@@ -196,8 +197,8 @@ export function AppointmentDetailPanel({
     }
   };
 
-  // Check if status actions are available
-  const canChangeStatus = appointment.status === "BOOKED" || appointment.status === "ARRIVED";
+  // Status can be changed for BOOKED, ARRIVED, and MISSED
+  const canChangeStatus = appointment.status === "BOOKED" || appointment.status === "ARRIVED" || appointment.status === "MISSED";
 
   return (
     <div 
@@ -356,20 +357,33 @@ export function AppointmentDetailPanel({
             >
               {canChangeStatus && (
                 <>
-                  <DropdownMenuItem
-                    onClick={() => onMarkArrived?.(appointment.id)}
-                    className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-                  >
-                    <UserCheck className="h-4 w-4 mr-2 text-green-400" />
-                    Mark arrived
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => onMarkMissed?.(appointment.id)}
-                    className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-                  >
-                    <CalendarX className="h-4 w-4 mr-2 text-red-400" />
-                    Mark missed
-                  </DropdownMenuItem>
+                  {appointment.status !== "ARRIVED" && appointment.status !== "MISSED" && (
+                    <DropdownMenuItem
+                      onClick={() => onMarkArrived?.(appointment.id)}
+                      className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+                    >
+                      <UserCheck className="h-4 w-4 mr-2 text-green-400" />
+                      Mark arrived
+                    </DropdownMenuItem>
+                  )}
+                  {appointment.status !== "MISSED" && (
+                    <DropdownMenuItem
+                      onClick={() => onMarkMissed?.(appointment.id)}
+                      className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+                    >
+                      <CalendarX className="h-4 w-4 mr-2 text-red-400" />
+                      Mark missed
+                    </DropdownMenuItem>
+                  )}
+                  {appointment.status === "MISSED" && (
+                    <DropdownMenuItem
+                      onClick={() => onMarkBooked?.(appointment.id)}
+                      className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
+                    >
+                      <Clock className="h-4 w-4 mr-2 text-primary" />
+                      Mark as Booked
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator className="bg-gray-700/50" />
                 </>
               )}
@@ -380,21 +394,7 @@ export function AppointmentDetailPanel({
                 <Calendar className="h-4 w-4 mr-2 text-primary" />
                 Reschedule
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onBookAgain?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <RotateCcw className="h-4 w-4 mr-2 text-blue-400" />
-                Book again
-              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-gray-700/50" />
-              <DropdownMenuItem
-                onClick={() => onAddService?.(appointment.id)}
-                className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
-              >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Add service
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onAddNote?.(appointment.id)}
                 className="text-white focus:bg-gray-700 focus:text-white rounded-lg cursor-pointer"
@@ -471,8 +471,45 @@ export function AppointmentDetailPanel({
                 </div>
                 <p className="text-white font-medium">{formatDate(new Date(appointment.startTime))}</p>
                 <p className="text-gray-400 text-sm mt-1">
-                  {formatTime(new Date(appointment.startTime))} - {formatTime(new Date(appointment.endTime))} ({duration} mins)
+                  {formatTime(new Date(appointment.startTime))} - {formatTime(new Date(appointment.endTime))}
                 </p>
+                {onUpdateDuration && appointment.status !== "CANCELED" && appointment.status !== "COMPLETED" ? (
+                  <div className="mt-3 pt-3 border-t border-gray-700/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <label className="text-xs sm:text-sm font-medium text-gray-400 flex-shrink-0">
+                        Duration:
+                      </label>
+                      <Select
+                        value={duration.toString()}
+                        onValueChange={(value) => {
+                          const newDuration = parseInt(value);
+                          if (newDuration !== duration && onUpdateDuration) {
+                            onUpdateDuration(appointment.id, newDuration);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9 sm:h-10 w-full sm:w-[140px] bg-gray-700/60 border-gray-600/50 text-white text-sm hover:bg-gray-700/80 hover:border-gray-600 transition-colors focus:ring-2 focus:ring-primary/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          {![15, 30, 45, 60, 90, 120].includes(duration) && (
+                            <SelectItem value={duration.toString()} className="focus:bg-gray-700 focus:text-white">
+                              {duration} min
+                            </SelectItem>
+                          )}
+                          <SelectItem value="15" className="focus:bg-gray-700 focus:text-white">15 min</SelectItem>
+                          <SelectItem value="30" className="focus:bg-gray-700 focus:text-white">30 min</SelectItem>
+                          <SelectItem value="45" className="focus:bg-gray-700 focus:text-white">45 min</SelectItem>
+                          <SelectItem value="60" className="focus:bg-gray-700 focus:text-white">60 min</SelectItem>
+                          <SelectItem value="90" className="focus:bg-gray-700 focus:text-white">90 min</SelectItem>
+                          <SelectItem value="120" className="focus:bg-gray-700 focus:text-white">120 min</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-xs mt-2">{duration} minutes</p>
+                )}
               </div>
 
               {/* Service Card */}
@@ -505,22 +542,36 @@ export function AppointmentDetailPanel({
                 <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/50">
                   <p className="text-sm text-gray-400 mb-3">Quick Actions</p>
                   <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => onMarkArrived?.(appointment.id)}
-                      variant="outline"
-                      className="w-full justify-start border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300"
-                    >
-                      <UserCheck className="h-4 w-4 mr-2" />
-                      Mark as Arrived
-                    </Button>
-                    <Button
-                      onClick={() => onMarkMissed?.(appointment.id)}
-                      variant="outline"
-                      className="w-full justify-start border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                    >
-                      <CalendarX className="h-4 w-4 mr-2" />
-                      Mark as Missed
-                    </Button>
+                    {appointment.status !== "ARRIVED" && appointment.status !== "MISSED" && (
+                      <Button
+                        onClick={() => onMarkArrived?.(appointment.id)}
+                        variant="outline"
+                        className="w-full justify-start border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300"
+                      >
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Mark as Arrived
+                      </Button>
+                    )}
+                    {appointment.status !== "MISSED" && (
+                      <Button
+                        onClick={() => onMarkMissed?.(appointment.id)}
+                        variant="outline"
+                        className="w-full justify-start border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        <CalendarX className="h-4 w-4 mr-2" />
+                        Mark as Missed
+                      </Button>
+                    )}
+                    {appointment.status === "MISSED" && (
+                      <Button
+                        onClick={() => onMarkBooked?.(appointment.id)}
+                        variant="outline"
+                        className="w-full justify-start border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Mark as Booked
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -601,22 +652,6 @@ export function AppointmentDetailPanel({
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Reschedule Appointment
-                  </Button>
-                  <Button
-                    onClick={() => onBookAgain?.(appointment.id)}
-                    variant="outline"
-                    className="w-full justify-start border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Book Again
-                  </Button>
-                  <Button
-                    onClick={() => onAddService?.(appointment.id)}
-                    variant="outline"
-                    className="w-full justify-start border-gray-600/30 text-gray-300 hover:bg-gray-700/50 hover:text-white"
-                  >
-                    <Briefcase className="h-4 w-4 mr-2" />
-                    Add Service
                   </Button>
                   <Button
                     onClick={() => onAddNote?.(appointment.id)}

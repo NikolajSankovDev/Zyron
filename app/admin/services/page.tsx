@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
+import { DashboardScrollFix } from "@/components/admin/dashboard-scroll-fix";
 
 export default async function ServicesPage() {
   const t = await getTranslations("admin");
@@ -42,47 +43,49 @@ export default async function ServicesPage() {
   );
 
   return (
-    <div className="p-6 space-y-6 h-full flex flex-col">
-      <div className="flex justify-between items-center flex-shrink-0">
+    <>
+      <DashboardScrollFix />
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 lg:h-full flex flex-col lg:overflow-y-auto overflow-visible min-h-0" data-admin-page="services">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 flex-shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-white">{t("services")}</h1>
-          <p className="text-gray-400 mt-1">{t("manageServiceOfferings")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t("services")}</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1">{t("manageServiceOfferings")}</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">{t("addService")}</Button>
+        <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto text-sm sm:text-base">{t("addService")}</Button>
       </div>
 
-      <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
-        <CardHeader className="flex-shrink-0">
-          <CardTitle className="text-white">{t("allServices")}</CardTitle>
+      <Card className="bg-gray-900 border-gray-800 flex flex-col lg:flex-1 lg:min-h-0">
+        <CardHeader className="flex-shrink-0 px-3 sm:px-6">
+          <CardTitle className="text-base sm:text-lg text-white">{t("allServices")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto min-h-0">
+        <CardContent className="lg:flex-1 lg:overflow-y-auto lg:min-h-0 px-3 sm:px-6 pb-8 lg:pb-6">
           {services.length === 0 ? (
-            <p className="text-gray-400">
+            <p className="text-sm sm:text-base text-gray-400">
               {t("noServicesFound")} {!process.env.DATABASE_URL && "Database not connected."}
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {services.map((service: any) => (
                 <div
                   key={service.id}
-                  className="p-4 border border-gray-800 rounded-lg bg-black/50"
+                  className="p-3 sm:p-4 border border-gray-800 rounded-lg bg-black/50"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-white">{service.slug}</p>
-                      <p className="text-sm text-gray-400 mt-1">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white text-sm sm:text-base">{service.slug}</p>
+                      <p className="text-xs sm:text-sm text-gray-400 mt-1">
                         {t("duration")}: {service.durationMinutes} min
                       </p>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <p className="text-xs sm:text-sm text-gray-400 mt-1">
                         {t("price")}: €{String(service.basePrice)}
                       </p>
-                      <p className="text-sm text-white mt-1">
+                      <p className="text-xs sm:text-sm text-white mt-1">
                         {t("usedIn")}: {service._count?.appointmentServices || 0} {t("appointments")}
                       </p>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center flex-shrink-0 w-full sm:w-auto">
                       <span
-                        className={`text-xs px-2 py-1 rounded ${
+                        className={`text-xs px-2 py-1 rounded whitespace-nowrap ${
                           service.active
                             ? "bg-green-500/20 text-green-400 border border-green-500/30"
                             : "bg-gray-700 text-gray-400 border border-gray-600"
@@ -90,7 +93,7 @@ export default async function ServicesPage() {
                       >
                         {service.active ? t("active") : t("inactive")}
                       </span>
-                      <Button variant="outline" size="sm" className="border-gray-700 text-white hover:bg-gray-800">
+                      <Button variant="outline" size="sm" className="border-gray-700 text-white hover:bg-gray-800 text-xs sm:text-sm">
                         {tCommon("edit")}
                       </Button>
                     </div>
@@ -102,5 +105,6 @@ export default async function ServicesPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }

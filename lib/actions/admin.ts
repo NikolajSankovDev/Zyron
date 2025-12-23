@@ -447,3 +447,195 @@ export async function rescheduleAppointmentAction(
   }
 }
 
+export async function updateAppointmentNoteAction(
+  appointmentId: string,
+  notes: string
+) {
+  // Get current user from Prisma (synced from Clerk)
+  const user = await getCurrentPrismaUser();
+
+  if (!user) {
+    return {
+      error: "You must be logged in to update appointment notes",
+    };
+  }
+
+  if (!["ADMIN", "BARBER"].includes(user.role)) {
+    return {
+      error: "You must be an admin or barber to update appointment notes",
+    };
+  }
+
+  try {
+    const updated = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.appointment.update({
+          where: { id: appointmentId },
+          data: { notes: notes || null },
+        });
+      },
+      null
+    );
+
+    if (!updated) {
+      return {
+        error: "Failed to update appointment notes.",
+      };
+    }
+
+    // Revalidate all locale variants of the admin calendar page
+    locales.forEach((locale) => {
+      revalidatePath(`/${locale}/admin/calendar`);
+    });
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update appointment note error:", error);
+    return {
+      error: error.message || "Failed to update appointment notes",
+    };
+  }
+}
+
+export async function updateAppointmentDurationAction(
+  appointmentId: string,
+  newDurationMinutes: number
+) {
+  // Get current user from Prisma (synced from Clerk)
+  const user = await getCurrentPrismaUser();
+
+  if (!user) {
+    return {
+      error: "You must be logged in to update appointment duration",
+    };
+  }
+
+  if (!["ADMIN", "BARBER"].includes(user.role)) {
+    return {
+      error: "You must be an admin or barber to update appointment duration",
+    };
+  }
+
+  if (newDurationMinutes <= 0) {
+    return {
+      error: "Duration must be greater than 0",
+    };
+  }
+
+  try {
+    // Get the current appointment
+    const currentAppointment = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.appointment.findUnique({
+          where: { id: appointmentId },
+        });
+      },
+      null
+    );
+
+    if (!currentAppointment) {
+      return { error: "Appointment not found" };
+    }
+
+    // Calculate new end time
+    const newStartTime = new Date(currentAppointment.startTime);
+    const newEndTime = new Date(newStartTime);
+    newEndTime.setMinutes(newEndTime.getMinutes() + newDurationMinutes);
+
+    // Validate against barber's working hours
+    const weekday = newStartTime.getDay();
+    const workingHours = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.barberWorkingHours.findUnique({
+          where: {
+            barberId_weekday: {
+              barberId: currentAppointment.barberId,
+              weekday,
+            },
+          },
+        });
+      },
+      null
+    );
+
+    if (!workingHours) {
+      return {
+        error: `Barber is not available on ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][weekday]}`,
+      };
+    }
+
+    // Check if new time is within working hours
+    const [startHour, startMinute] = workingHours.startTime.split(":").map(Number);
+    const [endHour, endMinute] = workingHours.endTime.split(":").map(Number);
+    const appointmentStartMinutes = newStartTime.getHours() * 60 + newStartTime.getMinutes();
+    const appointmentEndMinutes = newEndTime.getHours() * 60 + newEndTime.getMinutes();
+    const workingStartMinutes = startHour * 60 + startMinute;
+    const workingEndMinutes = endHour * 60 + endMinute;
+
+    if (appointmentStartMinutes < workingStartMinutes || appointmentEndMinutes > workingEndMinutes) {
+      return {
+        error: `Appointment time must be within barber's working hours (${workingHours.startTime} - ${workingHours.endTime})`,
+      };
+    }
+
+    // Check for conflicts with other appointments (excluding current one)
+    const conflictingAppointment = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.appointment.findFirst({
+          where: {
+            barberId: currentAppointment.barberId,
+            id: { not: appointmentId },
+            status: { not: "CANCELED" },
+            AND: [
+              { startTime: { lt: newEndTime } },
+              { endTime: { gt: newStartTime } },
+            ],
+          },
+        });
+      },
+      null
+    );
+
+    if (conflictingAppointment) {
+      return {
+        error: "This duration change conflicts with another appointment",
+      };
+    }
+
+    // Update the appointment
+    const updated = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        return await prisma.appointment.update({
+          where: { id: appointmentId },
+          data: {
+            endTime: newEndTime,
+          },
+        });
+      },
+      null
+    );
+
+    if (!updated) {
+      return {
+        error: "Failed to update appointment duration",
+      };
+    }
+
+    // Revalidate all locale variants of the admin calendar page
+    locales.forEach((locale) => {
+      revalidatePath(`/${locale}/admin/calendar`);
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update appointment duration error:", error);
+    return {
+      error: error.message || "Failed to update appointment duration",
+    };
+  }
+}
+
