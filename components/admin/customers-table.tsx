@@ -123,7 +123,7 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                   <th className="text-left p-2 sm:p-4 text-xs sm:text-sm font-semibold text-gray-400">{t("email")}</th>
                   <th className="text-left p-2 sm:p-4 text-xs sm:text-sm font-semibold text-gray-400">{t("phone")}</th>
                   <th className="text-left p-2 sm:p-4 text-xs sm:text-sm font-semibold text-gray-400">{t("appointments")}</th>
-                  <th className="text-right p-2 sm:p-4 text-xs sm:text-sm font-semibold text-gray-400">{t("actions")}</th>
+                  <th className="text-left p-2 sm:p-4 text-xs sm:text-sm font-semibold text-gray-400">{t("actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,7 +156,7 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                     <td className="p-2 sm:p-4 text-white text-xs sm:text-sm">
                       {customer._count?.customerAppointments || 0}
                     </td>
-                    <td className="p-2 sm:p-4 text-right">
+                    <td className="text-left p-2 sm:p-4">
                       <DeleteCustomerButton
                         customerId={customer.id}
                         customerName={customer.name}

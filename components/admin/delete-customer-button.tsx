@@ -67,7 +67,7 @@ export default function DeleteCustomerButton({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className="border-red-800 text-red-200 hover:bg-red-900/30"
+        className="border-red-800 text-red-200 hover:bg-red-900/30 m-0"
       >
         <Trash2 className="h-4 w-4" />
       </Button>
