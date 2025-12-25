@@ -313,26 +313,6 @@ export function AdminCalendarClient({
   }, []);
 
 
-  // Debug: Log container dimensions on mobile
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const isMobile = window.innerWidth <= 640;
-    if (!isMobile) return;
-    
-    const logDimensions = () => {
-      const mainEl = document.querySelector('.admin-calendar-main') as HTMLElement;
-      const wrapperEl = document.querySelector('.admin-calendar-main > div') as HTMLElement;
-      const calendarEl = document.querySelector('.admin-calendar') as HTMLElement;
-      const timeContentEl = document.querySelector('.admin-calendar .rbc-time-content') as HTMLElement;
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9f5e9b37-a81e-4c80-8472-90acdcaf9aff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin-calendar-client.tsx:316',message:'Container dimensions check',data:{mainHeight:mainEl?.offsetHeight,mainComputedHeight:mainEl?window.getComputedStyle(mainEl).height:'none',mainOverflow:mainEl?window.getComputedStyle(mainEl).overflow:'none',wrapperHeight:wrapperEl?.offsetHeight,wrapperOverflow:wrapperEl?window.getComputedStyle(wrapperEl).overflow:'none',calendarHeight:calendarEl?.offsetHeight,calendarOverflow:calendarEl?window.getComputedStyle(calendarEl).overflow:'none',timeContentHeight:timeContentEl?.offsetHeight,timeContentScrollHeight:timeContentEl?.scrollHeight,timeContentClientHeight:timeContentEl?.clientHeight,timeContentOverflow:timeContentEl?window.getComputedStyle(timeContentEl).overflow:'none',viewportHeight:window.innerHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
-    };
-    
-    const timeouts = [100, 500, 1000, 2000].map(delay => setTimeout(logDimensions, delay));
-    return () => timeouts.forEach(clearTimeout);
-  }, [isMounted, viewMode]);
 
   return (
     <div className="relative h-full w-full m-0 p-0 text-white overflow-visible">
@@ -356,7 +336,6 @@ export function AdminCalendarClient({
             timeRange={settings.timeRange}
             viewMode={viewMode as "day" | "week"}
             timeInterval={settings.timeInterval}
-            intervalHeight={settings.intervalHeight}
             onViewChange={handleViewChange}
             onDateChange={handleDateChange}
           />

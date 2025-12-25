@@ -7,8 +7,7 @@ export interface CalendarSettings {
     end: string; // "HH:mm" format
   };
   zoomMode: "dynamic" | "custom";
-  timeInterval: 15 | 30 | 60; // minutes
-  intervalHeight: "small" | "medium" | "large";
+  timeInterval: 15 | 30; // minutes
 }
 
 export interface AppointmentDisplayData {

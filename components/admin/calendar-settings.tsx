@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, Users, Maximize2, Timer } from "lucide-react";
+import { Clock, Users, Timer } from "lucide-react";
 import type { CalendarSettings, BarberDisplayData } from "@/lib/types/admin-calendar";
+import { deletePastAppointmentsAction } from "@/lib/actions/admin";
 
 interface CalendarSettingsProps {
   open: boolean;
@@ -74,6 +75,7 @@ export function CalendarSettingsModal({
   barbers,
 }: CalendarSettingsProps) {
   const [localSettings, setLocalSettings] = useState<CalendarSettings>(settings);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Sync local settings when modal opens
   useEffect(() => {
@@ -108,6 +110,33 @@ export function CalendarSettingsModal({
     onOpenChange(false);
   };
 
+  const handleDeletePastAppointments = async () => {
+    const confirmed = window.confirm(
+      "This will permanently delete all appointments before today. This action cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const result = await deletePastAppointmentsAction();
+      if (result.error) {
+        alert(`Failed to delete past appointments: ${result.error}`);
+      } else {
+        alert(
+          `Successfully deleted ${result.deletedCount || 0} past appointment(s).`
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting past appointments:", error);
+      alert("An unexpected error occurred while deleting past appointments.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleSelectAll = () => {
     setLocalSettings((prev) => ({
       ...prev,
@@ -134,16 +163,9 @@ export function CalendarSettingsModal({
     });
   };
 
-  const intervalHeightOptions = [
-    { value: "small", label: "Compact", description: "28px per slot" },
-    { value: "medium", label: "Standard", description: "40px per slot" },
-    { value: "large", label: "Spacious", description: "55px per slot" },
-  ];
-
   const timeIntervalOptions = [
     { value: 15, label: "15 min", description: "More detailed" },
     { value: 30, label: "30 min", description: "Balanced" },
-    { value: 60, label: "60 min", description: "Overview" },
   ];
 
   return (
@@ -303,7 +325,7 @@ export function CalendarSettingsModal({
                   onClick={() =>
                     setLocalSettings((prev) => ({
                       ...prev,
-                      timeInterval: option.value as 15 | 30 | 60,
+                      timeInterval: option.value as 15 | 30,
                     }))
                   }
                   className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all duration-200 ${
@@ -318,54 +340,32 @@ export function CalendarSettingsModal({
               ))}
             </div>
           </div>
-
-          {/* Interval Height Section */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Maximize2 className="h-4 w-4 text-primary" />
-              <Label className="text-white font-semibold">Row Height</Label>
-            </div>
-            <p className="text-sm text-gray-400">
-              Adjust the vertical spacing of time slots
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {intervalHeightOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() =>
-                    setLocalSettings((prev) => ({
-                      ...prev,
-                      intervalHeight: option.value as "small" | "medium" | "large",
-                    }))
-                  }
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all duration-200 ${
-                    localSettings.intervalHeight === option.value
-                      ? "bg-primary/15 border-primary/50 text-white"
-                      : "bg-gray-800/50 border-gray-700/50 text-gray-400 hover:bg-gray-800 hover:border-gray-600 hover:text-white"
-                  }`}
-                >
-                  <span className="font-semibold">{option.label}</span>
-                  <span className="text-xs opacity-70">{option.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-700/50">
+        <div className="flex justify-between items-center gap-3 pt-4 border-t border-gray-700/50">
           <Button
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleDeletePastAppointments}
+            disabled={isDeleting}
             className="text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg px-6"
           >
-            Cancel
+            {isDeleting ? "Deleting..." : "Magic"}
           </Button>
-          <Button 
-            onClick={handleSave} 
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg px-6 shadow-lg shadow-primary/20"
-          >
-            Save Changes
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg px-6"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg px-6 shadow-lg shadow-primary/20"
+            >
+              Save Changes
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

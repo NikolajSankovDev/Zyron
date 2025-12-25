@@ -315,7 +315,18 @@
     "cancelAppointments": "Отменить записи",
     "cancelBarberAppointments": "Отменить записи барбера",
     "appointmentsWillBeCanceled": "{count} записей будет отменено",
-    "invitationEmailSent": "Пригласительное письмо отправлено барберу"
+    "invitationEmailSent": "Пригласительное письмо отправлено барберу",
+    "editService": "Редактировать услугу",
+    "serviceSlug": "Слаг услуги",
+    "serviceDuration": "Длительность (минуты)",
+    "servicePrice": "Цена (€)",
+    "serviceActive": "Активен",
+    "serviceOrder": "Порядок",
+    "serviceName": "Название услуги",
+    "serviceDescription": "Описание",
+    "translations": "Переводы",
+    "slugMustBeUnique": "Слаг должен быть уникальным",
+    "invalidSlug": "Неверный формат слага"
   },
   "account": {
     "welcome": "Добро пожаловать",

@@ -302,7 +302,18 @@
     "cancelAppointments": "Termine stornieren",
     "cancelBarberAppointments": "Barbier-Termine stornieren",
     "appointmentsWillBeCanceled": "{count} Termine werden storniert",
-    "invitationEmailSent": "Einladungs-E-Mail an Barbier gesendet"
+    "invitationEmailSent": "Einladungs-E-Mail an Barbier gesendet",
+    "editService": "Leistung bearbeiten",
+    "serviceSlug": "Leistungs-Slug",
+    "serviceDuration": "Dauer (Minuten)",
+    "servicePrice": "Preis (€)",
+    "serviceActive": "Aktiv",
+    "serviceOrder": "Reihenfolge",
+    "serviceName": "Leistungsname",
+    "serviceDescription": "Beschreibung",
+    "translations": "Übersetzungen",
+    "slugMustBeUnique": "Slug muss eindeutig sein",
+    "invalidSlug": "Ungültiges Slug-Format"
   },
   "account": {
     "welcome": "Willkommen",

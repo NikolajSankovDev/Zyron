@@ -315,7 +315,18 @@
     "cancelAppointments": "Cancel Appointments",
     "cancelBarberAppointments": "Cancel Barber Appointments",
     "appointmentsWillBeCanceled": "{count} appointments will be canceled",
-    "invitationEmailSent": "Invitation email sent to barber"
+    "invitationEmailSent": "Invitation email sent to barber",
+    "editService": "Edit Service",
+    "serviceSlug": "Service Slug",
+    "serviceDuration": "Duration (minutes)",
+    "servicePrice": "Price (€)",
+    "serviceActive": "Active",
+    "serviceOrder": "Order",
+    "serviceName": "Service Name",
+    "serviceDescription": "Description",
+    "translations": "Translations",
+    "slugMustBeUnique": "Slug must be unique",
+    "invalidSlug": "Invalid slug format"
   },
   "account": {
     "welcome": "Welcome",

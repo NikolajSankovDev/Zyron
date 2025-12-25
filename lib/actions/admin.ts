@@ -8,6 +8,7 @@ import { locales } from "@/lib/i18n/config-constants";
 import { getCurrentPrismaUser } from "@/lib/clerk-user-sync";
 import { logger } from "@/lib/logger";
 import { deleteClerkUser, revokeClerkUserSessions, getClerkUser } from "@/lib/clerk";
+import { startOfDay } from "date-fns";
 
 const createAdminAppointmentSchema = z.object({
   customerName: z.string().min(1, "Customer name is required"),
@@ -250,6 +251,91 @@ export async function deleteAppointmentAction(appointmentId: string) {
     console.error("Appointment deletion error:", error);
     return {
       error: error.message || "Failed to delete appointment",
+    };
+  }
+}
+
+export async function deletePastAppointmentsAction() {
+  // Get current user from Prisma (synced from Clerk)
+  const user = await getCurrentPrismaUser();
+
+  if (!user) {
+    return {
+      error: "You must be logged in to delete appointments",
+    };
+  }
+
+  if (!["ADMIN", "BARBER"].includes(user.role)) {
+    return {
+      error: "You must be an admin or barber to delete appointments",
+    };
+  }
+
+  try {
+    // Calculate start of today (midnight) in local timezone
+    const todayStart = startOfDay(new Date());
+
+    // Delete all appointments before today using a transaction
+    const result = await safePrismaQuery(
+      async () => {
+        if (!prisma) throw new Error("Database not available");
+        
+        return await prisma.$transaction(async (tx) => {
+          // First, find all appointments before today
+          const pastAppointments = await tx.appointment.findMany({
+            where: {
+              startTime: {
+                lt: todayStart,
+              },
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          const appointmentIds = pastAppointments.map((apt) => apt.id);
+
+          if (appointmentIds.length === 0) {
+            return { deletedCount: 0 };
+          }
+
+          // Delete related appointment services first
+          await tx.appointmentService.deleteMany({
+            where: {
+              appointmentId: {
+                in: appointmentIds,
+              },
+            },
+          });
+
+          // Then delete the appointments
+          const deleteResult = await tx.appointment.deleteMany({
+            where: {
+              id: {
+                in: appointmentIds,
+              },
+            },
+          });
+
+          return { deletedCount: deleteResult.count };
+        });
+      },
+      { deletedCount: 0 }
+    );
+
+    // Revalidate all locale variants of the admin calendar page
+    locales.forEach((locale) => {
+      revalidatePath(`/${locale}/admin/calendar`);
+    });
+
+    return { 
+      success: true, 
+      deletedCount: result.deletedCount 
+    };
+  } catch (error: any) {
+    console.error("Past appointments deletion error:", error);
+    return {
+      error: error.message || "Failed to delete past appointments",
     };
   }
 }

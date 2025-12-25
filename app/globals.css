@@ -367,6 +367,19 @@ body:has([data-radix-scroll-area-viewport]) {
   white-space: nowrap;
 }
 
+/* Week view: allow text wrapping in resource name */
+.admin-calendar .rbc-time-header-content > .rbc-row:first-child .admin-calendar__resource-name {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
 .admin-calendar__time-label {
   font-weight: 500;
   color: #6b7280;
@@ -388,17 +401,28 @@ body:has([data-radix-scroll-area-viewport]) {
   font-weight: 600;
   font-size: 14px;
   line-height: 1.2;
+  text-align: center;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .admin-calendar__day-header-weekday {
   font-size: 14px;
   font-weight: 700;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .admin-calendar__day-header-date {
   font-size: 12px;
   color: #4b5563;
   font-weight: 600;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  text-align: center;
+  line-height: 1.2;
 }
 
 /* ==========================================================================
@@ -411,6 +435,7 @@ body:has([data-radix-scroll-area-viewport]) {
   flex-shrink: 0 !important;
   min-height: 48px !important;
   border-bottom: 1px solid #e5e7eb !important;
+  width: 100% !important;
 }
 
 /* Style .rbc-header cells in week view to match barber headers */
@@ -418,6 +443,8 @@ body:has([data-radix-scroll-area-viewport]) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  flex: 1 1 0% !important; /* Allow columns to shrink */
+  min-width: 0 !important; /* Remove minimum width constraint */
   min-height: 48px !important;
   padding: 0 !important;
   background: #ffffff !important;
@@ -436,6 +463,9 @@ body:has([data-radix-scroll-area-viewport]) {
   min-height: 48px !important;
   padding: 10px 6px !important;
   background: #ffffff !important;
+  text-align: center !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 /* Resource row - single horizontal row */
@@ -459,6 +489,9 @@ body:has([data-radix-scroll-area-viewport]) {
 /* Time header content wrapper */
 .admin-calendar .rbc-time-header-content {
   border-left: 1px solid #e5e7eb !important;
+  display: flex !important; /* Use flexbox for week view */
+  flex-direction: column !important;
+  width: 100% !important;
 }
 
 .admin-calendar .rbc-time-header-content > .rbc-row.rbc-row-resource {
@@ -511,8 +544,15 @@ body:has([data-radix-scroll-area-viewport]) {
   border-top: 1px solid #e5e7eb !important;
 }
 
+/* Week view: make time-content use flexbox for columns */
+.admin-calendar .rbc-time-view .rbc-time-content {
+  display: flex !important;
+}
+
 .admin-calendar .rbc-time-content > * + * > * {
   border-left: 1px solid #e5e7eb !important;
+  flex: 1 1 0% !important; /* Allow columns to shrink continuously */
+  min-width: 0 !important; /* Remove minimum width constraint */
 }
 
 /* Time gutter column - ensure it doesn't get closed slot styling */
@@ -604,20 +644,34 @@ body:has([data-radix-scroll-area-viewport]) {
   height: 100%;
   width: 100%;
   min-height: 28px; /* Minimum height to ensure content is visible */
+  max-width: 100% !important; /* Never exceed parent width */
   border-top: 1px solid rgba(0, 0, 0, 0.25) !important;
   border-right: 1px solid rgba(0, 0, 0, 0.25) !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25) !important;
   border-left: 3px solid !important;
   border-color: rgba(0, 0, 0, 0.25) !important;
   border-radius: 6px;
-  overflow: visible !important; /* Change to visible to prevent clipping */
+  overflow: hidden !important; /* Change to hidden to contain wrapped text */
   cursor: pointer;
   transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
   box-sizing: border-box;
 }
 
+/* Responsive padding for narrow columns - adjust based on screen width */
+@media (max-width: 480px) {
+  .admin-calendar .calendar-event {
+    padding: 1px 2px 1px 5px !important; /* Minimal padding for very narrow screens */
+  }
+}
+
+@media (min-width: 481px) and (max-width: 640px) {
+  .admin-calendar .calendar-event {
+    padding: 2px 3px 2px 6px !important; /* Reduced padding for narrow screens */
+  }
+}
+
 /* Responsive padding based on event height - use percentage-based detection */
-/* For events with height >= 5% (taller events in 60min intervals) */
+/* For events with height >= 5% (taller events) */
 .admin-calendar .rbc-event[style*="height: 5%"] .calendar-event,
 .admin-calendar .rbc-event[style*="height: 6%"] .calendar-event,
 .admin-calendar .rbc-event[style*="height: 7%"] .calendar-event,
@@ -672,7 +726,12 @@ body:has([data-radix-scroll-area-viewport]) {
   line-height: 1.2; /* Tighter line height */
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal !important; /* Allow wrapping to 2 rows */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important; /* Max 2 lines */
+  -webkit-box-orient: vertical !important;
   flex-shrink: 0;
   margin: 0;
   padding: 0;
@@ -699,7 +758,12 @@ body:has([data-radix-scroll-area-viewport]) {
   line-height: 1.1; /* Tighter line height */
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal !important; /* Allow wrapping to 2 rows */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important; /* Max 2 lines */
+  -webkit-box-orient: vertical !important;
   flex-shrink: 0;
   margin: 0;
   padding: 0;
@@ -794,19 +858,24 @@ body:has([data-radix-scroll-area-viewport]) {
 /* Note: Position is set by media queries - mobile and desktop both use absolute */
 .admin-calendar .rbc-day-slot .rbc-events-container {
   overflow: visible !important;
+  width: 100% !important; /* Fit column width */
+  box-sizing: border-box !important;
 }
 
 /* Overlapping events - react-big-calendar handles positioning, but we ensure they don't stack unnecessarily */
 .admin-calendar .rbc-day-slot .rbc-event {
   position: absolute !important;
-  min-width: 100px; /* Minimum width to ensure readability */
-  max-width: 100%; /* Can take full width if alone */
+  width: 100% !important; /* Take full width of column */
+  max-width: 100% !important; /* Never exceed column width */
+  min-width: 0 !important; /* Allow shrinking in narrow columns */
+  box-sizing: border-box !important; /* Include padding/border in width */
 }
 
 /* For short appointments (15min or less), allow them to be narrower so multiple can fit side-by-side */
 .admin-calendar .rbc-day-slot .rbc-event.calendar-event--short {
-  min-width: 80px;
-  max-width: calc(50% - 2px); /* Allow two 15min appointments side-by-side in 1h slot */
+  width: calc(50% - 2px) !important; /* Allow two 15min appointments side-by-side */
+  max-width: calc(50% - 2px) !important;
+  min-width: 0 !important;
 }
 
 /* When multiple short events overlap, react-big-calendar's overlap algorithm will position them side-by-side */
@@ -816,8 +885,10 @@ body:has([data-radix-scroll-area-viewport]) {
   display: flex !important;
   height: 100% !important;
   width: 100% !important;
+  max-width: 100% !important; /* Never exceed parent width */
   min-height: 0 !important;
-  overflow: visible !important; /* Change to visible to prevent content clipping */
+  overflow: hidden !important; /* Hidden to contain wrapped text */
+  box-sizing: border-box !important;
 }
 
 /* Ensure calendar-event uses flexbox for proper content layout */
@@ -834,6 +905,9 @@ body:has([data-radix-scroll-area-viewport]) {
   justify-content: center !important;
   min-height: 28px !important;
   padding: 1px 3px 1px 6px !important; /* Even smaller padding for very short events */
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* Make sure events don't get cut off */
@@ -1218,12 +1292,25 @@ main.admin-calendar-main {
   .admin-calendar .rbc-time-content {
     flex: 1 !important;
     overflow-y: auto !important;
-    overflow-x: auto !important;
+    overflow-x: hidden !important; /* Prevent horizontal scroll - columns should shrink */
     -webkit-overflow-scrolling: touch !important;
     min-height: 0 !important;
     position: relative !important;
+    display: flex !important; /* Use flexbox for week view columns */
     /* Ensure scroll works on touch devices */
     touch-action: pan-y !important;
+  }
+  
+  /* Week view: make columns shrink continuously */
+  .admin-calendar .rbc-time-content > * {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+  }
+  
+  .admin-calendar .rbc-time-content > * > * {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
   }
 
   /* Time gutter - narrow on mobile, scrolls with content */
@@ -1260,11 +1347,22 @@ main.admin-calendar-main {
     pointer-events: auto !important;
   }
 
-  /* Events - absolute positioned */
+  /* Events - absolute positioned, fit perfectly in columns */
   .admin-calendar .rbc-day-slot .rbc-event {
     position: absolute !important;
-    min-width: 100px !important;
-    max-width: 100% !important;
+    width: 100% !important; /* Take full width of column */
+    max-width: 100% !important; /* Never exceed column width */
+    min-width: 0 !important; /* Allow shrinking in narrow columns */
+    box-sizing: border-box !important; /* Include padding/border in width */
+    left: 0 !important; /* Align to left edge of column */
+    right: 0 !important; /* Align to right edge of column */
+  }
+  
+  /* Short appointments can still be side-by-side */
+  .admin-calendar .rbc-day-slot .rbc-event.calendar-event--short {
+    width: calc(50% - 2px) !important;
+    max-width: calc(50% - 2px) !important;
+    min-width: 0 !important;
   }
 
   /* Smaller headers */
@@ -1287,34 +1385,51 @@ main.admin-calendar-main {
   .admin-calendar__day-header {
     padding: 6px 4px !important;
     font-size: 12px !important;
+    min-height: 40px !important; /* Allow height to grow if text wraps */
+    height: auto !important;
+  }
+  
+  /* Week view headers on mobile - allow wrapping */
+  .admin-calendar .rbc-time-header-content > .rbc-row:first-child > .rbc-header {
+    min-height: 40px !important;
+    height: auto !important;
   }
 
   .admin-calendar .rbc-time-gutter .rbc-label {
     font-size: 10px !important;
   }
 
-  /* Smaller event text */
+  /* Smaller event text - responsive padding based on column width */
   .admin-calendar .calendar-event {
     font-size: 10px !important;
-    padding: 2px 4px 2px 6px !important;
+    padding: 2px 3px 2px 5px !important; /* Reduced padding for narrow columns */
     min-height: 24px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .admin-calendar .calendar-event__time {
-    font-size: 9px !important;
+    font-size: 8px !important; /* Smaller on mobile */
+    white-space: nowrap !important; /* Time should stay on one line */
   }
 
   .admin-calendar .calendar-event__customer {
-    font-size: 10px !important;
+    font-size: 9px !important; /* Smaller on mobile */
+    line-height: 1.1 !important; /* Tighter line height for wrapping */
+    -webkit-line-clamp: 2 !important; /* Max 2 lines */
   }
 
   .admin-calendar .calendar-event__services {
-    font-size: 9px !important;
+    font-size: 8px !important; /* Smaller on mobile */
+    line-height: 1.1 !important; /* Tighter line height for wrapping */
+    -webkit-line-clamp: 2 !important; /* Max 2 lines */
   }
 
-  /* Minimum column width */
+  /* Allow columns to shrink continuously - no minimum width */
   .admin-calendar .rbc-time-content > * + * > * {
-    min-width: 120px !important;
+    min-width: 0 !important;
+    flex: 1 1 0% !important;
   }
 }
 
@@ -1377,9 +1492,22 @@ main.admin-calendar-main {
 
   /* Time content scrolling on tablet */
   .admin-calendar .rbc-time-content {
-    overflow-x: auto !important;
+    overflow-x: hidden !important; /* Prevent horizontal scroll - columns should shrink */
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    display: flex !important; /* Use flexbox for week view columns */
+  }
+  
+  /* Week view: make columns shrink continuously on tablet */
+  .admin-calendar .rbc-time-content > * {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+  }
+  
+  .admin-calendar .rbc-time-content > * > * {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
   }
 }
 

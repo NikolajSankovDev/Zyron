@@ -213,7 +213,6 @@ export function getDefaultCalendarSettings(barbers?: Array<{ workingHours: { sta
     timeRange: defaultTimeRange,
     zoomMode: "dynamic",
     timeInterval: 30,
-    intervalHeight: "small",
   };
 }
 
@@ -272,18 +271,3 @@ export function formatDate(date: Date, locale: string = "en"): string {
   }
 }
 
-/**
- * Get interval height in pixels
- */
-export function getIntervalHeight(height: "small" | "medium" | "large"): number {
-  switch (height) {
-    case "small":
-      return 28;
-    case "medium":
-      return 40;
-    case "large":
-      return 55;
-    default:
-      return 28;
-  }
-}

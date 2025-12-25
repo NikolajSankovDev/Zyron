@@ -54,8 +54,7 @@ interface AdminCalendarProps {
     end: string; // "HH:mm"
   };
   viewMode?: "day" | "week";
-  timeInterval?: 15 | 30 | 60;
-  intervalHeight?: "small" | "medium" | "large";
+  timeInterval?: 15 | 30;
   onViewChange?: (view: "day" | "week") => void;
   onDateChange?: (date: Date) => void;
 }
@@ -160,7 +159,6 @@ const CalendarEvent = ({ event }: EventProps<CalendarEventData>) => {
       const eventHeight = rbcEvent.offsetHeight;
       
       // Force apply correct padding and overflow based on event height
-      // For 60min intervals, events are ~39px tall (6.25%)
       if (eventHeight <= 45) {
         // Small events - use minimal padding
         node.style.setProperty('padding', '2px 4px 2px 8px', 'important');
@@ -241,7 +239,6 @@ export function AdminCalendar({
   timeRange = { start: "10:00", end: "20:00" },
   viewMode = "day",
   timeInterval = 15,
-  intervalHeight = "medium",
   onViewChange,
   onDateChange,
 }: AdminCalendarProps) {
@@ -295,9 +292,11 @@ export function AdminCalendar({
 
   // Transform appointments to events
   const events = useMemo(() => {
-    const selectedSet = selectedBarberIds?.length
-      ? new Set(selectedBarberIds.map((id) => String(id)))
-      : null;
+    // In week view, don't filter by barber - show all appointments for the week
+    // In day view, filter by selected barbers
+    const selectedSet = (viewMode === "week" || !selectedBarberIds?.length)
+      ? null
+      : new Set(selectedBarberIds.map((id) => String(id)));
 
     const baseEvents = appointments
       .filter((apt) => {
@@ -326,7 +325,7 @@ export function AdminCalendar({
     const validResourceIds = new Set(resources.map((resource) => String(resource.id)));
 
     return baseEvents.filter((event) => validResourceIds.has(event.resourceId));
-  }, [appointments, resources, selectedBarberIds]);
+  }, [appointments, resources, selectedBarberIds, viewMode]);
 
   // Handle event click
   const handleSelectEvent = useCallback((event: any) => {
